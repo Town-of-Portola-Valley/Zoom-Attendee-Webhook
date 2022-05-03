@@ -1,0 +1,16 @@
+# package directories
+node_modules
+jspm_packages
+
+# Serverless directories
+.serverless
+
+yarn-error.log
+.nyc_output/
+.stryker-tmp/
+coverage/
+reports/
+
+*.sublime-workspace
+
+*.zip

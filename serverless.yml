@@ -1,0 +1,70 @@
+org: hughescr
+app: zoom-attendee-webhook
+# Welcome to Serverless!
+#
+# For full config options, check the docs:
+#    docs.serverless.com
+
+service: Zoom-Attendee-Webhook
+
+provider:
+  name: aws
+  # These values are defaults, and can be over-written in each function below
+  architecture: arm64
+  runtime: nodejs14.x
+  memorySize: 256
+  timeout: 10
+  region: us-west-2
+  versionFunctions: false
+
+  deploymentBucket:
+    name: ${ssm:/serverless/deploymentbucket/prefix}-${self:provider.region}
+    blockPublicAccess: true
+
+  environment:
+    ZOOM_AUTHORIZATION_CODE: ${param:ZOOM_AUTHORIZATION_CODE}
+
+  stackTags:
+    Project: "PV Zoom Attendees"
+    Organization: "Town of Portola Valley"
+
+plugins:
+  - "@hughescr/serverless-plugin-git-version-json"
+  - serverless-domain-manager
+
+custom:
+  # Specify the path to where the git versioning plugin should write its output json file, relative to the root folder
+  versionJSONFile: git_version.json
+
+  customDomain:
+    http:
+      domainName: pv-zooms.rungie.com
+      createRoute53Record: true
+      createRoute53IPv6Record: true
+      endpointType: regional
+      apiType: http
+      autoDomain: true
+
+functions:
+
+  handleZoomWebhook:
+    description: >
+      Handle participant joined/left webhook posts from Zoom. Update DynamoDB table to track
+      adding one attendance point for every join and decrementing for every leave.
+    handler: index.handleZoomWebhook
+    events:
+      - httpApi: POST /hook
+
+  handleListMeetings:
+    description: >
+      Read data from DynamoDB and list all meetings that have a non-zero participant count, as HTML with links to each meeting.
+    handler: index.handleListMeetings
+    events:
+      - httpApi: GET /
+
+  handleListParticipants:
+    description: >
+      Read data from DynamoDB for a given meeting ID and list all the participants in that meeting, as HTML.
+    handler: index.handleListParticipants
+    events:
+      - httpApi: GET /meeting/{meeting_id}
