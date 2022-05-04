@@ -28,22 +28,61 @@ provider:
     Project: "PV Zoom Attendees"
     Organization: "Town of Portola Valley"
 
+  iam:
+    role:
+      statements:
+        - Effect: Allow
+          Action:
+            - dynamodb:*
+          Resource:
+            - { Fn::GetAtt: [ PVWebinarAttendees, Arn ] }
+            - Fn::Join:
+              - /
+              -
+                - { Fn::GetAtt: [ PVWebinarAttendees, Arn ] }
+                - index/*
+
+package:
+  # artifact: Zoom-Attendee-Webhook.zip
+  exclude:
+    - coverage/**
+    - reports/**
+    - .nyc_output/**
+    - '*.sublime*'
+    - package.json
+    - package-lock.json
+    - stryker.conf.js
+    - serverless.yml
+    - yarn.lock
+    - yarn-error.log
+    - node_modules/aws-sdk/**
+    - serverless_plugins/**
+    - .serverless/**
+    - Zoom-Attendee-Webhook.zip
+    - "**/test/**"
+    - "**/tests/**"
+    - serverless-test-data/**
+
 plugins:
   - "@hughescr/serverless-plugin-git-version-json"
   - serverless-domain-manager
+  - serverless-plugin-log-retention
+  - serverless-plugin-zip-symlinks-compress-harder
 
 custom:
   # Specify the path to where the git versioning plugin should write its output json file, relative to the root folder
   versionJSONFile: git_version.json
 
+  logRetentionInDays: 30
+
   customDomain:
     http:
       domainName: pv-zooms.rungie.com
+      autoDomain: true
       createRoute53Record: true
       createRoute53IPv6Record: true
       endpointType: regional
       apiType: http
-      autoDomain: true
 
 functions:
 
@@ -68,3 +107,67 @@ functions:
     handler: index.handleListParticipants
     events:
       - httpApi: GET /meeting/{meeting_id}
+
+resources:
+  Resources:
+    PVWebinarAttendees:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        TableName: PVWebinarAttendees
+        BillingMode: PAY_PER_REQUEST
+        AttributeDefinitions:
+          # Meeting ID is numeric "object.id" and is the ID of the webinar
+          - AttributeName: MeetingID
+            AttributeType: N
+          # The latest title "object.topic" of the webinar
+          # - AttributeName: MeetingTitle
+          #   AttributeType: S
+          # The latest start time "object.start_time" of the webinar as YYYY-MM-DDTHH:MM:SSZ
+          # - AttributeName: MeetingStartTime
+          #   AttributeType: S
+          # The latest scheduled meeting duration "object.duration" of the webinar as a number of minutes
+          # - AttributeName: MeetingDuration
+          #   AttributeType: N
+          # The latest name "object.participant.user_name" of the participant
+          # - AttributeName: ParticipantName
+          #   AttributeType: S
+          # The latest email "object.participant.email" of the participant or "" if unknown
+          # - AttributeName: ParticipantEmail
+          #   AttributeType: S
+          # ParticipantID is a string "object.participant.id" which is unique to this user across multiple logins, or the phone number for call-in users.
+          - AttributeName: ParticipantID
+            AttributeType: S
+          # Times are stored as YYYY-MM-DDTHH:MM:SSZ from "object.participant.join_time"
+          # - AttributeName: JoinTimes
+          #   AttributeType: SS
+          # Times are stored as YYYY-MM-DDTHH:MM:SSZ from "object.participant.leave_time"
+          # - AttributeName: LeaveTimes
+          #   AttributeType: SS
+          # ParticipantSessionID is numeric "participant.user_id" and gets a new one issued for each login
+          # - AttributeName: ParticipantSessionIds
+          #   AttributeType: NS
+          # ParticipationCount is calculated as number of joins minus number of leaves
+          # - AttributeName: ParticipationCount
+          #   AttributeType: N
+          # LastUpdatedAt is timestamp that this record was last modified as YYYY-MM-DDTHH:MM:SSZ
+          - AttributeName: LastUpdatedAt
+            AttributeType: S
+        KeySchema:
+          - AttributeName: MeetingID
+            KeyType: HASH
+          - AttributeName: ParticipantID
+            KeyType: RANGE
+        GlobalSecondaryIndexes:
+          - IndexName: MeetingID-LastUpdatedAt
+            KeySchema:
+              - AttributeName: MeetingID
+                KeyType: HASH
+              - AttributeName: LastUpdatedAt
+                KeyType: RANGE
+            Projection:
+              ProjectionType: INCLUDE
+              NonKeyAttributes:
+                - MeetingTitle
+                - MeetingStartTime
+                - MeetingDuration
+                - ParticipationCount

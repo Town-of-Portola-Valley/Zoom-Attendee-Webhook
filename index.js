@@ -8,6 +8,14 @@ const brotli = promisify(zlib.brotliCompress);
 const gzip = promisify(zlib.gzip);
 const deflate = promisify(zlib.deflate);
 
+const logger = require('@hughescr/logger').logger;
+const _ = require('lodash');
+const { DateTime } = require('luxon');
+const AWS = require('aws-sdk');
+const pluralize = require('pluralize');
+
+const dynamoDB = new AWS.DynamoDB();
+
 /* istanbul ignore next */
 const git_version = stat('./git_version.json')
     .then(res => {
@@ -70,13 +78,13 @@ module.exports.handleZoomWebhook = async (event) => {
     };
 
     if(!event) {
-        console.error('No event was received');
+        logger.error('No event was received');
 
         return makeHTMLResponse(500, 'Internal server error occurred', '');
     }
 
     if(!event.headers) {
-        console.error('No headers were in the event\n' + JSON.stringify(event, null, 2));
+        logger.error('No headers were in the event', event);
 
         return makeHTMLResponse(500, 'Internal server error occurred', '');
     }
@@ -84,13 +92,13 @@ module.exports.handleZoomWebhook = async (event) => {
     const acceptEncoding = event.headers[ACCEPT_ENCODING];
 
     if(event.headers.authorization !== AUTHORIZATION_CHECK) {
-        console.error('Failed to authenticate request\n' + JSON.stringify(event, null, 2));
+        logger.error('Failed to authenticate request', event);
 
         return makeHTMLResponse(401, 'Authorization header failed to match requirements', acceptEncoding);
     }
 
     if(!event.body) {
-        console.error('There was no body/payload in the event\n' + JSON.stringify(event, null, 2));
+        logger.error('There was no body/payload in the event', event);
 
         return makeHTMLResponse(400, 'No content was sent in the request body', acceptEncoding);
     }
@@ -98,7 +106,7 @@ module.exports.handleZoomWebhook = async (event) => {
     const body = JSON.parse(event.body);
 
     if(!body || !body.payload || !body.event) {
-        console.error('The body exists, and is valid JSON, but appears to have invalid content\n' + event.body);
+        logger.error('The body exists, and is valid JSON, but appears to have invalid content', event.body);
 
         return makeHTMLResponse(422, 'The body must contain a payload and an event', acceptEncoding);
     }
@@ -107,7 +115,7 @@ module.exports.handleZoomWebhook = async (event) => {
 
     switch(body.event) {
         case 'webinar.participant_joined':
-            console.info('JOINED\n' + JSON.stringify({
+            logger.info('JOINED', {
                 webinar: {
                     id: body.payload.object.id,
                     title: body.payload.object.topic,
@@ -119,11 +127,11 @@ module.exports.handleZoomWebhook = async (event) => {
                     name: body.payload.object.participant.user_name,
                     join_time: body.payload.object.participant.join_time,
                 }
-            }));
+            });
             break;
 
         case 'webinar.participant_left':
-            console.info('LEFT\n' + JSON.stringify({
+            logger.info('LEFT', {
                 webinar: {
                     id: body.payload.object.id,
                     title: body.payload.object.topic,
@@ -135,11 +143,11 @@ module.exports.handleZoomWebhook = async (event) => {
                     name: body.payload.object.participant.user_name,
                     leave_time: body.payload.object.participant.join_time,
                 }
-            }));
+            });
             break;
 
         default:
-            console.error('Unexpected event type\n' + JSON.stringify(body, null, 2));
+            logger.error('Unexpected event type', body);
 
             return makeHTMLResponse(422, `Unexpected event type: ${body.event}`, acceptEncoding);
     }
@@ -152,28 +160,66 @@ module.exports.handleZoomWebhook = async (event) => {
 
 module.exports.handleListMeetings = async (event) => {
     if(!event) {
-        console.error('No event was received');
+        logger.error('No event was received');
 
         return makeHTMLResponse(500, 'Internal server error occurred');
     }
 
     const acceptEncoding = event.headers[ACCEPT_ENCODING];
 
-    console.info('LIST_MEETINGS\n', JSON.stringify(event, null, 2));
+    const statement = `SELECT MeetingID,
+                              MeetingTitle,
+                              ParticipationCount
+                        FROM PVWebinarAttendees."MeetingID-LastUpdatedAt"
+                        WHERE LastUpdatedAt > '${DateTime.utc().minus({ days: 7 }).toISO()}'`;
 
-    return makeHTMLResponse(200, '<html><head><title>Active Portola Valley Webinars</title></head><body><h1>Active Portola Valley Webinars</h1><ul><li><a href="meeting/123456789">Some meeting (ID: 123456789)</a></li></ul></body>', acceptEncoding);
+    const raw = await dynamoDB.executeStatement({ Statement: statement }).promise();
+    logger.info('RAW', raw);
+
+    const results = _(raw.Items)
+                    .map(AWS.DynamoDB.Converter.unmarshall)
+                    .reduce((sum, i) => {
+                        const updated = {
+                            ...sum[i.MeetingID],
+                            MeetingID: i.MeetingID,
+                            MeetingTitle: i.MeetingTitle,
+                        };
+                        updated.ParticipationCount = (updated.ParticipationCount || 0) + i.ParticipationCount;
+                        sum[i.MeetingID] = updated;
+                        return { ...sum,
+                            [`${i.MeetingID}`]: updated,
+                        };
+                    }, {});
+    logger.info('RESULTS', results);
+
+    const response = `
+    <html>
+        <head><title>Active Portola Valley Webinars</title></head>
+        <body>
+            <h1>Active Portola Valley Webinars</h1>
+            <ul>
+            ${_.map(results, i =>
+           `<li>
+                <a href="meeting/${i.MeetingID}">${i.MeetingTitle}</a> (${pluralize('participant', i.ParticipationCount, true)})
+            </li>`).join('')}
+            </ul>
+        </body>
+    </html>
+    `;
+
+    return makeHTMLResponse(200, response, acceptEncoding);
 };
 
 module.exports.handleListParticipants = async (event) => {
     if(!event) {
-        console.error('No event was received');
+        logger.error('No event was received');
 
         return makeHTMLResponse(500, 'Internal server error occurred');
     }
 
     const acceptEncoding = event.headers[ACCEPT_ENCODING];
 
-    console.info('LIST_PARTICIPANTS\n', JSON.stringify(event, null, 2));
+    logger.info('LIST_PARTICIPANTS', event);
 
     return makeHTMLResponse(200, `<html><head><title>Participants in Meeting ${event.pathParameters.meeting_id}</title></head><body><h1>Participants in Meeting ${event.pathParameters.meeting_id}</h1><ul><li>John Smith</li><li>Jane Doe</li></ul></body>`, acceptEncoding);
 };
