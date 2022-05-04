@@ -112,37 +112,44 @@ module.exports.handleZoomWebhook = async (event) => {
     }
 
     // At this point the body looks good; has an event and a payload
+    logger.info({ payload: body.payload });
 
     switch(body.event) {
         case 'webinar.participant_joined':
             logger.info('JOINED', {
                 webinar: {
-                    id: body.payload.object.id,
-                    title: body.payload.object.topic,
-                    start_time: body.payload.object.start_time,
+                    MeetingID: body.payload.object.id,
+                    MeetingTitle: body.payload.object.topic,
+                    MeetingStartTime: body.payload.object.start_time,
+                    MeetingDuration: body.payload.object.duration,
                 },
                 participant: {
-                    id: body.payload.object.participant.id,
-                    user_id: body.payload.object.participant.user_id,
-                    name: body.payload.object.participant.user_name,
-                    join_time: body.payload.object.participant.join_time,
-                }
+                    ParticipantID: body.payload.object.participant.id || body.payload.object.participant.user_name,
+                    ParticipantSessionID: body.payload.object.participant.user_id,
+                    ParticipantName: body.payload.object.participant.user_name,
+                    ParticipantEmail: body.payload.object.participant.email,
+                    JoinTime: body.payload.object.participant.join_time,
+                },
+                LastUpdatedAt: DateTime.utc().toISO(),
             });
             break;
 
         case 'webinar.participant_left':
             logger.info('LEFT', {
                 webinar: {
-                    id: body.payload.object.id,
-                    title: body.payload.object.topic,
-                    start_time: body.payload.object.start_time,
+                    MeetingID: body.payload.object.id,
+                    MeetingTitle: body.payload.object.topic,
+                    MeetingStartTime: body.payload.object.start_time,
+                    MeetingDuration: body.payload.object.duration,
                 },
                 participant: {
-                    id: body.payload.object.participant.id,
-                    user_id: body.payload.object.participant.user_id,
-                    name: body.payload.object.participant.user_name,
-                    leave_time: body.payload.object.participant.join_time,
-                }
+                    ParticipantID: body.payload.object.participant.id || body.payload.object.participant.user_name,
+                    ParticipantSessionID: body.payload.object.participant.user_id,
+                    ParticipantName: body.payload.object.participant.user_name,
+                    ParticipantEmail: body.payload.object.participant.email,
+                    LeaveTime: body.payload.object.participant.leave_time,
+                },
+                LastUpdatedAt: DateTime.utc().toISO(),
             });
             break;
 
