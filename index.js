@@ -114,9 +114,10 @@ module.exports.handleZoomWebhook = async (event) => {
     // At this point the body looks good; has an event and a payload
     logger.info({ payload: body.payload });
 
+    let joined, left, statement, params;
     switch(body.event) {
         case 'webinar.participant_joined':
-            logger.info('JOINED', {
+            joined = {
                 webinar: {
                     MeetingID: body.payload.object.id,
                     MeetingTitle: body.payload.object.topic,
@@ -131,11 +132,77 @@ module.exports.handleZoomWebhook = async (event) => {
                     JoinTime: body.payload.object.participant.join_time,
                 },
                 LastUpdatedAt: DateTime.utc().toISO(),
+            };
+            logger.info({ JOINED: joined });
+
+            statement = `UPDATE PVWebinarAttendees
+                SET MeetingTitle=?
+                SET MeetingStartTime=?
+                SET MeetingDuration=?
+                SET ParticipantSessionIDs=set_add(ParticipantSessionIDs, <<${joined.participant.ParticipantSessionID}>>)
+                SET ParticipantName=?
+                SET ParticipantEmail=?
+                SET JoinTimes=set_add(JoinTimes, <<'${joined.participant.JoinTime}'>>)
+                SET ParticipationCount=ParticipationCount+1
+                SET LastUpdatedAt=?
+                WHERE MeetingID=?
+                AND ParticipantID=?
+            `;
+            params = [
+                { S: joined.webinar.MeetingTitle },
+                { S: joined.webinar.MeetingStartTime },
+                { N: `${joined.webinar.MeetingDuration}` },
+                { S: joined.participant.ParticipantName },
+                { S: joined.participant.ParticipantEmail },
+                { S: DateTime.utc().toISO() },
+                { N: `${joined.webinar.MeetingID}` },
+                { S: joined.participant.ParticipantID },
+            ];
+
+            await dynamoDB.executeStatement({
+                Statement: statement,
+                Parameters: params,
+            }).promise()
+            .catch(err => {
+                logger.warn({ err: err });
+                statement = `INSERT INTO PVWebinarAttendees
+                      VALUE { 'MeetingID':?,
+                              'ParticipantID':?,
+                              'MeetingTitle':?,
+                              'MeetingStartTime':?,
+                              'MeetingDuration':?,
+                              'ParticipantSessionIDs':?,
+                              'ParticipantName':?,
+                              'ParticipantEmail':?,
+                              'JoinTimes':?,
+                              'ParticipationCount':?,
+                              'LastUpdatedAt':?
+                          }
+                `;
+                params = [
+                    { N: `${joined.webinar.MeetingID}` },
+                    { S: joined.participant.ParticipantID },
+                    { S: joined.webinar.MeetingTitle },
+                    { S: joined.webinar.MeetingStartTime },
+                    { N: `${joined.webinar.MeetingDuration}` },
+                    { NS: [`${joined.participant.ParticipantSessionID}`] },
+                    { S: joined.participant.ParticipantName },
+                    { S: joined.participant.ParticipantEmail },
+                    { SS: [joined.participant.JoinTime] },
+                    { N: '1' },
+                    { S: DateTime.utc().toISO() },
+                ];
+
+                return dynamoDB.executeStatement({
+                    Statement: statement,
+                    Parameters: params,
+                }).promise();
             });
+
             break;
 
         case 'webinar.participant_left':
-            logger.info('LEFT', {
+            left = {
                 webinar: {
                     MeetingID: body.payload.object.id,
                     MeetingTitle: body.payload.object.topic,
@@ -150,7 +217,72 @@ module.exports.handleZoomWebhook = async (event) => {
                     LeaveTime: body.payload.object.participant.leave_time,
                 },
                 LastUpdatedAt: DateTime.utc().toISO(),
+            };
+            logger.info({ LEFT: left });
+            statement = `UPDATE PVWebinarAttendees
+                SET MeetingTitle=?
+                SET MeetingStartTime=?
+                SET MeetingDuration=?
+                SET ParticipantSessionIDs=set_add(ParticipantSessionIDs, <<${left.participant.ParticipantSessionID}>>)
+                SET ParticipantName=?
+                SET ParticipantEmail=?
+                SET LeaveTimes=set_add(LeaveTimes, <<'${left.participant.LeaveTime}'>>)
+                SET ParticipationCount=ParticipationCount-1
+                SET LastUpdatedAt=?
+                WHERE MeetingID=?
+                AND ParticipantID=?
+            `;
+            params = [
+                { S: left.webinar.MeetingTitle },
+                { S: left.webinar.MeetingStartTime },
+                { N: `${left.webinar.MeetingDuration}` },
+                { S: left.participant.ParticipantName },
+                { S: left.participant.ParticipantEmail },
+                { S: DateTime.utc().toISO() },
+                { N: `${left.webinar.MeetingID}` },
+                { S: left.participant.ParticipantID },
+            ];
+
+            await dynamoDB.executeStatement({
+                Statement: statement,
+                Parameters: params,
+            }).promise()
+            .catch(err => {
+                logger.warn({ err: err });
+                statement = `INSERT INTO PVWebinarAttendees
+                      VALUE { 'MeetingID':?,
+                              'ParticipantID':?,
+                              'MeetingTitle':?,
+                              'MeetingStartTime':?,
+                              'MeetingDuration':?,
+                              'ParticipantSessionIDs':?,
+                              'ParticipantName':?,
+                              'ParticipantEmail':?,
+                              'LeaveTimes':?,
+                              'ParticipationCount':?,
+                              'LastUpdatedAt':?
+                          }
+                `;
+                params = [
+                    { N: `${left.webinar.MeetingID}` },
+                    { S: left.participant.ParticipantID },
+                    { S: left.webinar.MeetingTitle },
+                    { S: left.webinar.MeetingStartTime },
+                    { N: `${left.webinar.MeetingDuration}` },
+                    { NS: [`${left.participant.ParticipantSessionID}`] },
+                    { S: left.participant.ParticipantName },
+                    { S: left.participant.ParticipantEmail },
+                    { SS: [left.participant.LeaveTime] },
+                    { N: '0' },
+                    { S: DateTime.utc().toISO() },
+                ];
+
+                return dynamoDB.executeStatement({
+                    Statement: statement,
+                    Parameters: params,
+                }).promise();
             });
+
             break;
 
         default:
