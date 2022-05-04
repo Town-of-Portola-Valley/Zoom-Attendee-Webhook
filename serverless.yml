@@ -28,6 +28,30 @@ provider:
     Project: "PV Zoom Attendees"
     Organization: "Town of Portola Valley"
 
+  logs:
+    httpApi:
+      format: >-
+        {
+        "requestTime":"$context.requestTime",
+        "requestId":"$context.requestId",
+        "apiId":"$context.apiId",
+        "identity": {
+        "sourceIp":"$context.identity.sourceIp",
+        "userAgent":"$context.identity.userAgent"
+        },
+        "resourcePath":"$context.routeKey",
+        "path":"$context.path",
+        "httpMethod":"$context.httpMethod",
+        "stage":"$context.stage",
+        "status":"$context.status",
+        "integrationStatus":"$context.integrationStatus",
+        "integrationLatency":"$context.integrationLatency",
+        "responseLatency":"$context.responseLatency",
+        "responseLength":"$context.responseLength",
+        "errorMessage":"$context.error.message",
+        "format":"SLS_HTTP_API_LOG","version":"1.0.0"
+        }
+
   iam:
     role:
       statements:
