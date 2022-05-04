@@ -343,12 +343,24 @@ module.exports.handleListMeetings = async (event) => {
         <head><title>Active Portola Valley Webinars</title></head>
         <body>
             <h1>Active Portola Valley Webinars</h1>
+            <h4>Active Meetings</h4>
+            ${_(results).map().find('ParticipationCount') ? '' : '&mdash; None &mdash;'}
             <dl>
-            ${_(results).map().sortBy('MeetingStartTime').reverse().map(i =>
+            ${_(results).map().filter('ParticipationCount').sortBy('MeetingStartTime').reverse().map(i =>
            `<dt><a href="meeting/${i.MeetingID}">${i.MeetingTitle}</a></dt>
-            <dd>Started at ${i.MeetingStartTime.setZone('America/Los_Angeles').toLocaleString(DateTime.DATETIME_SHORT)} (${i.MeetingStartTime.toRelative({ round:false })})<br/>
-                Scheduled to end at ${i.MeetingStartTime.setZone('America/Los_Angeles').plus(i.MeetingDuration).toLocaleString(DateTime.DATETIME_SHORT)} (${i.MeetingStartTime.plus(i.MeetingDuration).toRelative({ round:false })})<br/>
-                ${pluralize('participant', i.ParticipationCount, true)} since ${i.LastUpdatedAt.setZone('America/Los_Angeles').toLocaleString(DateTime.DATETIME_SHORT)} (${i.LastUpdatedAt.toRelative({ round: false })})
+            <dd>Started at ${i.MeetingStartTime.setZone('America/Los_Angeles').toLocaleString(DateTime.DATETIME_SHORT)} (${i.MeetingStartTime.toRelative()})<br/>
+                Scheduled to end at ${i.MeetingStartTime.setZone('America/Los_Angeles').plus(i.MeetingDuration).toLocaleString(DateTime.DATETIME_SHORT)} (${i.MeetingStartTime.plus(i.MeetingDuration).toRelative()})<br/>
+                ${pluralize('participant', i.ParticipationCount, true)} since ${i.LastUpdatedAt.setZone('America/Los_Angeles').toLocaleString(DateTime.DATETIME_SHORT)} (${i.LastUpdatedAt.toRelative()})
+            </dd>`).join('')}
+            </dl>
+            <h4>Past Meetings</h4>
+            ${_(results).map().find(i => !i.ParticipationCount) ? '' : '&mdash; None &mdash;'}
+            <dl>
+            ${_(results).map().filter(i => !i.ParticipationCount).sortBy('MeetingStartTime').reverse().map(i =>
+           `<dt><a href="meeting/${i.MeetingID}">${i.MeetingTitle}</a></dt>
+            <dd>Started at ${i.MeetingStartTime.setZone('America/Los_Angeles').toLocaleString(DateTime.DATETIME_SHORT)} (${i.MeetingStartTime.toRelative()})<br/>
+                Scheduled to end at ${i.MeetingStartTime.setZone('America/Los_Angeles').plus(i.MeetingDuration).toLocaleString(DateTime.DATETIME_SHORT)} (${i.MeetingStartTime.plus(i.MeetingDuration).toRelative()})<br/>
+                ${pluralize('participant', i.ParticipationCount, true)} since ${i.LastUpdatedAt.setZone('America/Los_Angeles').toLocaleString(DateTime.DATETIME_SHORT)} (${i.LastUpdatedAt.toRelative()})
             </dd>`).join('')}
             </dl>
         </body>
@@ -407,20 +419,22 @@ module.exports.handleListParticipants = async (event) => {
         <head><title>${MeetingTitle} (${MeetingID})</title></head>
         <body>
             <h1>${MeetingTitle} (${MeetingID})</h1>
-            <h2>Started ${MeetingStartTime.toRelative({ round:false })},
-             scheduled to end ${MeetingStartTime.plus(MeetingDuration).toRelative({ round:false })}</h2>
+            <h2>Started ${MeetingStartTime.toRelative()},
+             scheduled to end ${MeetingStartTime.plus(MeetingDuration).toRelative()}</h2>
             <h3>Total: ${pluralize('participant', participantCount, true)}</h3>
             <h4>Current Participants: ${results['1'] ? results['1'].length : 0}</h4>
+            ${results['1'] ? '' : '&mdash; None &mdash;'}
             <dl>
             ${_(results['1']).sortBy('JoinTime').reverse().map(i =>
                `<dt>${i.ParticipantName}${i.ParticipantEmail ? ` &lt;${i.ParticipantEmail}&gt;` : ''}</dt>
-                <dd>Joined the meeting at ${i.JoinTime.toLocaleString(DateTime.DATETIME_SHORT)} (${i.JoinTime.toRelative({ round:false })})</dd>`).join('')}
+                <dd>Joined the meeting at ${i.JoinTime.toLocaleString(DateTime.DATETIME_SHORT)} (${i.JoinTime.toRelative()})</dd>`).join('')}
             </dl>
             <h4>Past Participants: ${results['0'] ? results['0'].length : 0}</h4>
+            ${results['0'] ? '' : '&mdash; None &mdash;'}
             <dl>
             ${_(results['0']).sortBy('LeaveTime').reverse().map(i =>
                `<dt>${i.ParticipantName}${i.ParticipantEmail ? ` &lt;${i.ParticipantEmail}&gt;` : ''}</dt>
-                <dd>Left the meeting at ${i.LeaveTime.toLocaleString(DateTime.DATETIME_SHORT)} (${i.LeaveTime.toRelative({ round:false })})</dd>`).join('')}
+                <dd>Left the meeting at ${i.LeaveTime.toLocaleString(DateTime.DATETIME_SHORT)} (${i.LeaveTime.toRelative()})</dd>`).join('')}
             </dl>
         </body>
     </html>
