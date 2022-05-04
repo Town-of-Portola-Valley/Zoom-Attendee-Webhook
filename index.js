@@ -340,9 +340,9 @@ module.exports.handleListMeetings = async (event) => {
 
     const response = `
     <html>
-        <head><title>Active Portola Valley Webinars</title></head>
+        <head><title>Portola Valley Webinars</title></head>
         <body>
-            <h1>Active Portola Valley Webinars</h1>
+            <h1>Portola Valley Webinars</h1>
             <h4>Active Meetings</h4>
             ${_(results).map().find('ParticipationCount') ? '' : '&mdash; None &mdash;'}
             <dl>
