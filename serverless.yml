@@ -43,31 +43,24 @@ provider:
                 - index/*
 
 package:
-  # artifact: Zoom-Attendee-Webhook.zip
-  exclude:
-    - coverage/**
-    - reports/**
-    - .nyc_output/**
-    - '*.sublime*'
-    - package.json
-    - package-lock.json
-    - stryker.conf.js
-    - serverless.yml
-    - yarn.lock
-    - yarn-error.log
-    - node_modules/aws-sdk/**
-    - serverless_plugins/**
-    - .serverless/**
-    - Zoom-Attendee-Webhook.zip
-    - "**/test/**"
-    - "**/tests/**"
-    - serverless-test-data/**
+  patterns:
+    - '!coverage/**'
+    - '!reports/**'
+    - '!.nyc_output/**'
+    - '!*.sublime*'
+    - '!package.json'
+    - '!package-lock.json'
+    - '!stryker.conf.js'
+    - '!yarn.lock'
+    - '!yarn-error.log'
+    - '!node_modules/aws-sdk/**'
+    - '!**/test/**'
+    - '!**/tests/**'
 
 plugins:
   - "@hughescr/serverless-plugin-git-version-json"
   - serverless-domain-manager
   - serverless-plugin-log-retention
-  - serverless-plugin-zip-symlinks-compress-harder
 
 custom:
   # Specify the path to where the git versioning plugin should write its output json file, relative to the root folder
@@ -147,8 +140,8 @@ resources:
           # - AttributeName: ParticipantSessionIds
           #   AttributeType: NS
           # ParticipationCount is calculated as number of joins minus number of leaves
-          # - AttributeName: ParticipationCount
-          #   AttributeType: N
+          - AttributeName: ParticipationCount
+            AttributeType: N
           # LastUpdatedAt is timestamp that this record was last modified as YYYY-MM-DDTHH:MM:SSZ
           - AttributeName: LastUpdatedAt
             AttributeType: S
@@ -171,3 +164,18 @@ resources:
                 - MeetingStartTime
                 - MeetingDuration
                 - ParticipationCount
+          - IndexName: MeetingID-ParticipationCount
+            KeySchema:
+              - AttributeName: MeetingID
+                KeyType: HASH
+              - AttributeName: ParticipationCount
+                KeyType: RANGE
+            Projection:
+              ProjectionType: INCLUDE
+              NonKeyAttributes:
+                - MeetingTitle
+                - MeetingStartTime
+                - MeetingDuration
+                - ParticipantName
+                - ParticipantEmail
+                - JoinTimes

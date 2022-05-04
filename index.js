@@ -10,7 +10,7 @@ const deflate = promisify(zlib.deflate);
 
 const logger = require('@hughescr/logger').logger;
 const _ = require('lodash');
-const { DateTime } = require('luxon');
+const { DateTime, Duration } = require('luxon');
 const AWS = require('aws-sdk');
 const pluralize = require('pluralize');
 
@@ -169,6 +169,8 @@ module.exports.handleListMeetings = async (event) => {
 
     const statement = `SELECT MeetingID,
                               MeetingTitle,
+                              MeetingStartTime,
+                              MeetingDuration,
                               ParticipationCount
                         FROM PVWebinarAttendees."MeetingID-LastUpdatedAt"
                         WHERE LastUpdatedAt > '${DateTime.utc().minus({ days: 7 }).toISO()}'`;
@@ -178,11 +180,15 @@ module.exports.handleListMeetings = async (event) => {
 
     const results = _(raw.Items)
                     .map(AWS.DynamoDB.Converter.unmarshall)
+                    .value();
+    const results2 = _(results)
                     .reduce((sum, i) => {
                         const updated = {
                             ...sum[i.MeetingID],
                             MeetingID: i.MeetingID,
                             MeetingTitle: i.MeetingTitle,
+                            MeetingStartTime: DateTime.fromISO(i.MeetingStartTime),
+                            MeetingDuration: Duration.fromObject({ minutes: i.MeetingDuration }),
                         };
                         updated.ParticipationCount = (updated.ParticipationCount || 0) + i.ParticipationCount;
                         sum[i.MeetingID] = updated;
@@ -190,7 +196,8 @@ module.exports.handleListMeetings = async (event) => {
                             [`${i.MeetingID}`]: updated,
                         };
                     }, {});
-    logger.info('RESULTS', results);
+    logger.info('TEST', [1, 2, 3]);
+    logger.info('RESULTS2', results2);
 
     const response = `
     <html>
@@ -198,9 +205,12 @@ module.exports.handleListMeetings = async (event) => {
         <body>
             <h1>Active Portola Valley Webinars</h1>
             <ul>
-            ${_.map(results, i =>
+            ${_.mapValues(results, i =>
            `<li>
-                <a href="meeting/${i.MeetingID}">${i.MeetingTitle}</a> (${pluralize('participant', i.ParticipationCount, true)})
+                <a href="meeting/${i.MeetingID}">${i.MeetingTitle}</a>
+                started ${i.MeetingStartTime.toRelative()},
+                expected to be over ${i.MeetingStartTime.plus(i.MeetingDuration).toRelative()}
+                (currently ${pluralize('participant', i.ParticipationCount, true)})
             </li>`).join('')}
             </ul>
         </body>
@@ -218,8 +228,55 @@ module.exports.handleListParticipants = async (event) => {
     }
 
     const acceptEncoding = event.headers[ACCEPT_ENCODING];
+    const meetingID = event.pathParameters.meeting_id;
 
-    logger.info('LIST_PARTICIPANTS', event);
+    const statement = `SELECT MeetingID,
+                              MeetingTitle,
+                              MeetingStartTime,
+                              MeetingDuration,
+                              ParticipantName,
+                              ParticipantEmail,
+                              JoinTimes
+                        FROM PVWebinarAttendees."MeetingID-ParticipationCount"
+                        WHERE MeetingID = ${meetingID}
+                        AND ParticipationCount > 0`;
 
-    return makeHTMLResponse(200, `<html><head><title>Participants in Meeting ${event.pathParameters.meeting_id}</title></head><body><h1>Participants in Meeting ${event.pathParameters.meeting_id}</h1><ul><li>John Smith</li><li>Jane Doe</li></ul></body>`, acceptEncoding);
+    const raw = await dynamoDB.executeStatement({ Statement: statement }).promise();
+    logger.info('RAW', raw);
+
+    const participantCount = raw.Items.length;
+    const results = _(raw.Items)
+                    .map(AWS.DynamoDB.Converter.unmarshall)
+                    .value();
+    const results2 = _(results)
+                    .map(i => ({
+                            ...i,
+                            MeetingStartTime: DateTime.fromISO(i.MeetingStartTime),
+                            MeetingDuration: Duration.fromObject({ minutes: i.MeetingDuration }),
+                            JoinTime: DateTime.fromISO(_(i.JoinTimes).sortBy().reverse().last()),
+                    }))
+                    .value();
+    logger.info('TEST', [1, 2, 3]);
+    logger.info('RESULTS2', results2);
+
+    const response = `
+    <html>
+        <head><title>${results[0].MeetingTitle} (${results[0].MeetingID})</title></head>
+        <body>
+            <h1>${results[0].MeetingTitle} (${results[0].MeetingID})</h1>
+            <h2>Started ${results[0].MeetingStartTime.toRelative()},
+             expected to be over ${results[0].MeetingStartTime.plus(results[0].MeetingDuration).toRelative()}</h2>
+            <h3>Total: ${pluralize('participant', participantCount, true)}</h3>
+            <ul>
+            ${_.map(results, i =>
+           `<li>
+                ${i.ParticipantName}${i.ParticipantEmail ? ` &lt;${i.ParticipantEmail}&gt;` : ''},
+                joined the meeting ${i.JoinTime.toRelative()}
+            </li>`).join('')}
+            </ul>
+        </body>
+    </html>
+    `;
+
+    return makeHTMLResponse(200, response, acceptEncoding);
 };

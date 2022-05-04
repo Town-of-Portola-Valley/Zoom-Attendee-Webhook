@@ -14,7 +14,7 @@
   },
   "devDependencies": {
     "@hughescr/eslint-config-default": "^2.8.7",
-    "@hughescr/serverless-plugin-git-version-json": "^1.0.3",
+    "@hughescr/serverless-plugin-git-version-json": "^1.1.0",
     "eslint": "^8.14.0",
     "serverless": "^3.16.0",
     "serverless-domain-manager": "^6.0.3",
