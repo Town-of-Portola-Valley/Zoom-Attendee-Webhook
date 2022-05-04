@@ -345,7 +345,7 @@ module.exports.handleListMeetings = async (event) => {
            `<li>
                 <a href="meeting/${i.MeetingID}">${i.MeetingTitle}</a>
                 started ${i.MeetingStartTime.toRelative({ round:false })},
-                expected to be over ${i.MeetingStartTime.plus(i.MeetingDuration).toRelative({ round:false })}
+                scheduled to end ${i.MeetingStartTime.plus(i.MeetingDuration).toRelative({ round:false })}
                 (currently ${pluralize('participant', i.ParticipationCount, true)})
             </li>`).join('')}
             </ul>
@@ -399,7 +399,7 @@ module.exports.handleListParticipants = async (event) => {
         <body>
             <h1>${results[0].MeetingTitle} (${results[0].MeetingID})</h1>
             <h2>Started ${results[0].MeetingStartTime.toRelative({ round:false })},
-             expected to be over ${results[0].MeetingStartTime.plus(results[0].MeetingDuration).toRelative({ round:false })}</h2>
+             scheduled to end ${results[0].MeetingStartTime.plus(results[0].MeetingDuration).toRelative({ round:false })}</h2>
             <h3>Total: ${pluralize('participant', participantCount, true)}</h3>
             <ul>
             ${_(results).map(i =>
