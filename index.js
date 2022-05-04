@@ -180,8 +180,6 @@ module.exports.handleListMeetings = async (event) => {
 
     const results = _(raw.Items)
                     .map(AWS.DynamoDB.Converter.unmarshall)
-                    .value();
-    const results2 = _(results)
                     .reduce((sum, i) => {
                         const updated = {
                             ...sum[i.MeetingID],
@@ -196,8 +194,7 @@ module.exports.handleListMeetings = async (event) => {
                             [`${i.MeetingID}`]: updated,
                         };
                     }, {});
-    logger.info('TEST', [1, 2, 3]);
-    logger.info('RESULTS2', results2);
+    logger.info({ results: results });
 
     const response = `
     <html>
@@ -205,11 +202,11 @@ module.exports.handleListMeetings = async (event) => {
         <body>
             <h1>Active Portola Valley Webinars</h1>
             <ul>
-            ${_.mapValues(results, i =>
+            ${_.map(results, i =>
            `<li>
                 <a href="meeting/${i.MeetingID}">${i.MeetingTitle}</a>
-                started ${i.MeetingStartTime.toRelative()},
-                expected to be over ${i.MeetingStartTime.plus(i.MeetingDuration).toRelative()}
+                started ${i.MeetingStartTime.toRelative({ round:false })},
+                expected to be over ${i.MeetingStartTime.plus(i.MeetingDuration).toRelative({ round:false })}
                 (currently ${pluralize('participant', i.ParticipationCount, true)})
             </li>`).join('')}
             </ul>
@@ -247,31 +244,29 @@ module.exports.handleListParticipants = async (event) => {
     const participantCount = raw.Items.length;
     const results = _(raw.Items)
                     .map(AWS.DynamoDB.Converter.unmarshall)
-                    .value();
-    const results2 = _(results)
                     .map(i => ({
                             ...i,
                             MeetingStartTime: DateTime.fromISO(i.MeetingStartTime),
                             MeetingDuration: Duration.fromObject({ minutes: i.MeetingDuration }),
-                            JoinTime: DateTime.fromISO(_(i.JoinTimes).sortBy().reverse().last()),
+                            JoinTime: _(i.JoinTimes.values).sortBy().map(DateTime.fromISO).last(), // Find the latest join time
                     }))
+                    .sortBy(i => -i.JoinTime.valueOf()) // Sort with most recent joiner at the top
                     .value();
-    logger.info('TEST', [1, 2, 3]);
-    logger.info('RESULTS2', results2);
+    logger.info({ results: results });
 
     const response = `
     <html>
         <head><title>${results[0].MeetingTitle} (${results[0].MeetingID})</title></head>
         <body>
             <h1>${results[0].MeetingTitle} (${results[0].MeetingID})</h1>
-            <h2>Started ${results[0].MeetingStartTime.toRelative()},
-             expected to be over ${results[0].MeetingStartTime.plus(results[0].MeetingDuration).toRelative()}</h2>
+            <h2>Started ${results[0].MeetingStartTime.toRelative({ round:false })},
+             expected to be over ${results[0].MeetingStartTime.plus(results[0].MeetingDuration).toRelative({ round:false })}</h2>
             <h3>Total: ${pluralize('participant', participantCount, true)}</h3>
             <ul>
-            ${_.map(results, i =>
+            ${_(results).map(i =>
            `<li>
-                ${i.ParticipantName}${i.ParticipantEmail ? ` &lt;${i.ParticipantEmail}&gt;` : ''},
-                joined the meeting ${i.JoinTime.toRelative()}
+                ${i.ParticipantName}${i.ParticipantEmail ? ` &lt;${i.ParticipantEmail}&gt;` : ''} &mdash;
+                joined the meeting ${i.JoinTime.toRelative({ round:false })}
             </li>`).join('')}
             </ul>
         </body>
