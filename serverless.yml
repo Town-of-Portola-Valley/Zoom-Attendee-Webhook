@@ -179,3 +179,4 @@ resources:
                 - ParticipantName
                 - ParticipantEmail
                 - JoinTimes
+                - LeaveTimes

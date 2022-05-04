@@ -310,7 +310,8 @@ module.exports.handleListMeetings = async (event) => {
                               MeetingTitle,
                               MeetingStartTime,
                               MeetingDuration,
-                              ParticipationCount
+                              ParticipationCount,
+                              LastUpdatedAt
                         FROM PVWebinarAttendees."MeetingID-LastUpdatedAt"
                         WHERE LastUpdatedAt > '${DateTime.utc().minus({ days: 7 }).toISO()}'`;
 
@@ -320,12 +321,14 @@ module.exports.handleListMeetings = async (event) => {
     const results = _(raw.Items)
                     .map(AWS.DynamoDB.Converter.unmarshall)
                     .reduce((sum, i) => {
+                        const previous_last_updated = sum[i.MeetingID] && sum[i.MeetingID].LastUpdatedAt || DateTime.now().minus({ years: 1 });
                         const updated = {
                             ...sum[i.MeetingID],
                             MeetingID: i.MeetingID,
                             MeetingTitle: i.MeetingTitle,
                             MeetingStartTime: DateTime.fromISO(i.MeetingStartTime),
                             MeetingDuration: Duration.fromObject({ minutes: i.MeetingDuration }),
+                            LastUpdatedAt: DateTime.max(previous_last_updated, DateTime.fromISO(i.LastUpdatedAt)),
                         };
                         updated.ParticipationCount = (updated.ParticipationCount || 0) + i.ParticipationCount;
                         sum[i.MeetingID] = updated;
@@ -340,15 +343,14 @@ module.exports.handleListMeetings = async (event) => {
         <head><title>Active Portola Valley Webinars</title></head>
         <body>
             <h1>Active Portola Valley Webinars</h1>
-            <ul>
-            ${_.map(results, i =>
-           `<li>
-                <a href="meeting/${i.MeetingID}">${i.MeetingTitle}</a>
-                started ${i.MeetingStartTime.toRelative({ round:false })},
-                scheduled to end ${i.MeetingStartTime.plus(i.MeetingDuration).toRelative({ round:false })}
-                (currently ${pluralize('participant', i.ParticipationCount, true)})
-            </li>`).join('')}
-            </ul>
+            <dl>
+            ${_(results).map().sortBy('MeetingStartTime').reverse().map(i =>
+           `<dt><a href="meeting/${i.MeetingID}">${i.MeetingTitle}</a></dt>
+            <dd>Started at ${i.MeetingStartTime.setZone('America/Los_Angeles').toLocaleString(DateTime.DATETIME_SHORT)} (${i.MeetingStartTime.toRelative({ round:false })})<br/>
+                Scheduled to end at ${i.MeetingStartTime.setZone('America/Los_Angeles').plus(i.MeetingDuration).toLocaleString(DateTime.DATETIME_SHORT)} (${i.MeetingStartTime.plus(i.MeetingDuration).toRelative({ round:false })})<br/>
+                ${pluralize('participant', i.ParticipationCount, true)} since ${i.LastUpdatedAt.setZone('America/Los_Angeles').toLocaleString(DateTime.DATETIME_SHORT)} (${i.LastUpdatedAt.toRelative({ round: false })})
+            </dd>`).join('')}
+            </dl>
         </body>
     </html>
     `;
@@ -372,42 +374,54 @@ module.exports.handleListParticipants = async (event) => {
                               MeetingDuration,
                               ParticipantName,
                               ParticipantEmail,
-                              JoinTimes
+                              ParticipationCount,
+                              JoinTimes,
+                              LeaveTimes
                         FROM PVWebinarAttendees."MeetingID-ParticipationCount"
-                        WHERE MeetingID = ${meetingID}
-                        AND ParticipationCount > 0`;
+                        WHERE MeetingID = ${meetingID}`;
 
     const raw = await dynamoDB.executeStatement({ Statement: statement }).promise();
     logger.info('RAW', raw);
 
+    const MeetingTitle = raw.Items[0].MeetingTitle.S;
+    const MeetingID = raw.Items[0].MeetingID.N;
+    const MeetingStartTime = DateTime.fromISO(raw.Items[0].MeetingStartTime.S);
+    const MeetingDuration = Duration.fromObject({ minutes: raw.Items[0].MeetingDuration.N });
     const participantCount = raw.Items.length;
+
     const results = _(raw.Items)
                     .map(AWS.DynamoDB.Converter.unmarshall)
                     .map(i => ({
                             ...i,
                             MeetingStartTime: DateTime.fromISO(i.MeetingStartTime),
                             MeetingDuration: Duration.fromObject({ minutes: i.MeetingDuration }),
-                            JoinTime: _(i.JoinTimes.values).sortBy().map(DateTime.fromISO).last(), // Find the latest join time
+                            JoinTime: i.ParticipationCount ? _(i.JoinTimes.values).sortBy().map(DateTime.fromISO).last() : DateTime.now(), // Find the latest join time
+                            LeaveTime: i.ParticipationCount ? DateTime.now() : _(i.LeaveTimes.values).sortBy().map(DateTime.fromISO).last(),
                     }))
-                    .sortBy(i => -i.JoinTime.valueOf()) // Sort with most recent joiner at the top
+                    .groupBy('ParticipationCount')
                     .value();
     logger.info({ results: results });
 
     const response = `
     <html>
-        <head><title>${results[0].MeetingTitle} (${results[0].MeetingID})</title></head>
+        <head><title>${MeetingTitle} (${MeetingID})</title></head>
         <body>
-            <h1>${results[0].MeetingTitle} (${results[0].MeetingID})</h1>
-            <h2>Started ${results[0].MeetingStartTime.toRelative({ round:false })},
-             scheduled to end ${results[0].MeetingStartTime.plus(results[0].MeetingDuration).toRelative({ round:false })}</h2>
+            <h1>${MeetingTitle} (${MeetingID})</h1>
+            <h2>Started ${MeetingStartTime.toRelative({ round:false })},
+             scheduled to end ${MeetingStartTime.plus(MeetingDuration).toRelative({ round:false })}</h2>
             <h3>Total: ${pluralize('participant', participantCount, true)}</h3>
-            <ul>
-            ${_(results).map(i =>
-           `<li>
-                ${i.ParticipantName}${i.ParticipantEmail ? ` &lt;${i.ParticipantEmail}&gt;` : ''} &mdash;
-                joined the meeting ${i.JoinTime.toRelative({ round:false })}
-            </li>`).join('')}
-            </ul>
+            <h4>Current Participants: ${results['1'] ? results['1'].length : 0}</h4>
+            <dl>
+            ${_(results['1']).sortBy('JoinTime').reverse().map(i =>
+               `<dt>${i.ParticipantName}${i.ParticipantEmail ? ` &lt;${i.ParticipantEmail}&gt;` : ''}</dt>
+                <dd>Joined the meeting at ${i.JoinTime.toLocaleString(DateTime.DATETIME_SHORT)} (${i.JoinTime.toRelative({ round:false })})</dd>`).join('')}
+            </dl>
+            <h4>Past Participants: ${results['0'] ? results['0'].length : 0}</h4>
+            <dl>
+            ${_(results['0']).sortBy('LeaveTime').reverse().map(i =>
+               `<dt>${i.ParticipantName}${i.ParticipantEmail ? ` &lt;${i.ParticipantEmail}&gt;` : ''}</dt>
+                <dd>Left the meeting at ${i.LeaveTime.toLocaleString(DateTime.DATETIME_SHORT)} (${i.LeaveTime.toRelative({ round:false })})</dd>`).join('')}
+            </dl>
         </body>
     </html>
     `;
