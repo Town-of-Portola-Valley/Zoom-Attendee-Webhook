@@ -1,6 +1,6 @@
 {
   "name": "Zoom-Attendee-Webhook",
-  "version": "1.1.4",
+  "version": "1.2.0",
   "description": "An AWS lambda which will act as a webhook for Zoom to track webinar attendees, and then surface an endpoint which allows tracking who is in a webinar.",
   "engines": {
     "node": ">=10.x"
@@ -13,7 +13,7 @@
     "postversion": "git commit -m \"Bump package version to $npm_package_version\" package.json; git flow release start $npm_package_version; git flow release finish -m $npm_package_version $npm_package_version; git checkout develop; git merge master"
   },
   "devDependencies": {
-    "@hughescr/eslint-config-default": "^2.8.7",
+    "@hughescr/eslint-config-default": "^2.8.8",
     "@hughescr/serverless-plugin-git-version-json": "^1.1.0",
     "eslint": "^8.14.0",
     "serverless": "^3.16.0",
@@ -22,11 +22,11 @@
   },
   "dependencies": {
     "@hughescr/logger": "^2.4.7",
-    "aws-sdk": "^2.1127.0",
+    "aws-sdk": "^2.1128.0",
     "fs": "^0.0.1-security",
     "lodash": "^4.17.21",
     "luxon": "^2.3.2",
-    "pluralize": "^8.0.0",
+    "pug": "^3.0.2",
     "serverless-plugin-log-retention": "^2.0.0",
     "util": "^0.12.4",
     "zlib": "^1.0.5"
