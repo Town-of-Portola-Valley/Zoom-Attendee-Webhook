@@ -36,7 +36,7 @@ html
         style
             include ../css/style.css
     body
-        h1 #{page.title}
+        h1(class='my-2 text-center') #{page.title}
         div('list-group')
             each meetingGroup in meetings
                 +meetingList(meetingGroup.title, meetingGroup.meetings)
