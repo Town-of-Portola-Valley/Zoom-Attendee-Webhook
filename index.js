@@ -344,7 +344,7 @@ module.exports.handleListMeetings = async (event) => {
 
     const response = listMeetingsTemplate({
         DateTime,
-        page: { title: 'Portola Valley Webinars' },
+        page: { title: 'Portola Valley Webinars', version: (await git_version)[1].gitVersion },
         meetings: [
             {
                 title: 'Active Meetings',

@@ -37,6 +37,8 @@ html
             include ../css/style.css
     body
         h1(class='my-2 text-center') #{page.title}
-        div('list-group')
+        div(class='list-group-flush')
             each meetingGroup in meetings
                 +meetingList(meetingGroup.title, meetingGroup.meetings)
+        div(class='d-flex w-100 justify-content-end')
+            small(class='fw-lighter mx-3') Version: #{page.version}
