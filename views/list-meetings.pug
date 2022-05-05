@@ -1,0 +1,42 @@
+include mixins/time
+
+mixin meetingList(type, meetings)
+    div.card(class='list-group-item')
+        h2(class='card-header') #{type}
+        if meetings.length
+            div(class='list-group list-group-numbered')
+                each meeting in meetings
+                    a(class='list-group-item list-group-item-action' href='meeting/' + meeting.MeetingID)
+                        div(class='d-flex w-100 justify-content-between align-items-start')
+                            div(class='d-flex align-items-start')
+                                h4(class='btn-link') #{meeting.MeetingTitle}
+                                case meeting.ParticipationCount
+                                    when 0: span.badge(class='ms-2 bg-danger') No participants
+                                    when 1: span.badge(class='ms-2 bg-info text-dark') 1 participant
+                                    default: span.badge(class='ms-2 bg-primary') #{meeting.ParticipationCount} participants
+                            small Updated:
+                                +time(meeting.LastUpdatedAt)
+                        if meeting.ParticipationCount
+                            h6(class='mb-0') Started at
+                                +time(meeting.MeetingStartTime)
+                            small Scheduled end time
+                                +time(meeting.MeetingStartTime.plus(meeting.MeetingDuration))
+                        else
+                            h6(class='mb-0') Ended at
+                                +time(meeting.LastUpdatedAt)
+                            small Started at
+                                +time(meeting.MeetingStartTime)
+        else
+            div(class='card-body') &mdash; None &mdash;
+
+doctype html
+html
+    head
+        title #{page.title}
+        style
+            include ../css/style.css
+    body
+        h1 #{page.title}
+        div('list-group')
+            each meetingGroup in meetings
+                +meetingList(meetingGroup.title, meetingGroup.meetings)

@@ -1,0 +1,11 @@
+mixin time(t)
+    // Get things in the correct timezone
+    - t=t.setZone('America/Los_Angeles')
+    span.time
+        |
+        | #{t.toLocaleString(DateTime.DATETIME_CLEAR)}
+        |
+    span.relative
+        |
+        | (#{t.toRelative()})
+        |

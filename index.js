@@ -11,8 +11,17 @@ const deflate = promisify(zlib.deflate);
 const logger = require('@hughescr/logger').logger;
 const _ = require('lodash');
 const { DateTime, Duration } = require('luxon');
+DateTime.DATETIME_CLEAR = {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: 'numeric',
+    timeZone: 'America/Los_Angeles',
+    timeZoneName: 'short',
+};
+const pug = require('pug');
 const AWS = require('aws-sdk');
-const pluralize = require('pluralize');
 
 const dynamoDB = new AWS.DynamoDB();
 
@@ -290,6 +299,8 @@ module.exports.handleZoomWebhook = async (event) => {
     return makeEmptyResponse(204);
 };
 
+const listMeetingsTemplate = pug.compileFile('views/list-meetings.pug');
+
 module.exports.handleListMeetings = async (event) => {
     if(!event) {
         logger.error('No event was received');
@@ -331,34 +342,20 @@ module.exports.handleListMeetings = async (event) => {
                     }, {});
     logger.info({ results: results });
 
-    const response = `
-    <html>
-        <head><title>Portola Valley Webinars</title></head>
-        <body>
-            <h1>Portola Valley Webinars</h1>
-            <h4>Active Meetings</h4>
-            ${_(results).map().find('ParticipationCount') ? '' : '&mdash; None &mdash;'}
-            <dl>
-            ${_(results).map().filter('ParticipationCount').sortBy('MeetingStartTime').reverse().map(i =>
-           `<dt><a href="meeting/${i.MeetingID}">${i.MeetingTitle}</a></dt>
-            <dd>Started at ${i.MeetingStartTime.setZone('America/Los_Angeles').toLocaleString(DateTime.DATETIME_SHORT)} (${i.MeetingStartTime.toRelative()})<br/>
-                Scheduled to end at ${i.MeetingStartTime.setZone('America/Los_Angeles').plus(i.MeetingDuration).toLocaleString(DateTime.DATETIME_SHORT)} (${i.MeetingStartTime.plus(i.MeetingDuration).toRelative()})<br/>
-                ${pluralize('participant', i.ParticipationCount, true)} since ${i.LastUpdatedAt.setZone('America/Los_Angeles').toLocaleString(DateTime.DATETIME_SHORT)} (${i.LastUpdatedAt.toRelative()})
-            </dd>`).join('')}
-            </dl>
-            <h4>Past Meetings</h4>
-            ${_(results).map().find(i => !i.ParticipationCount) ? '' : '&mdash; None &mdash;'}
-            <dl>
-            ${_(results).map().filter(i => !i.ParticipationCount).sortBy('MeetingStartTime').reverse().map(i =>
-           `<dt><a href="meeting/${i.MeetingID}">${i.MeetingTitle}</a></dt>
-            <dd>Started at ${i.MeetingStartTime.setZone('America/Los_Angeles').toLocaleString(DateTime.DATETIME_SHORT)} (${i.MeetingStartTime.toRelative()})<br/>
-                Scheduled to end at ${i.MeetingStartTime.setZone('America/Los_Angeles').plus(i.MeetingDuration).toLocaleString(DateTime.DATETIME_SHORT)} (${i.MeetingStartTime.plus(i.MeetingDuration).toRelative()})<br/>
-                ${pluralize('participant', i.ParticipationCount, true)} since ${i.LastUpdatedAt.setZone('America/Los_Angeles').toLocaleString(DateTime.DATETIME_SHORT)} (${i.LastUpdatedAt.toRelative()})
-            </dd>`).join('')}
-            </dl>
-        </body>
-    </html>
-    `;
+    const response = listMeetingsTemplate({
+        DateTime,
+        page: { title: 'Portola Valley Webinars' },
+        meetings: [
+            {
+                title: 'Active Meetings',
+                meetings: _(results).map().filter('ParticipationCount').sortBy('MeetingStartTime').reverse().value(),
+            },
+            {
+                title: 'Ended Meetings (within last 7 days)',
+                meetings: _(results).map().filter(i => !i.ParticipationCount).sortBy('MeetingStartTime').reverse().value(),
+            }
+        ],
+    });
 
     return makeHTMLResponse(200, response, acceptEncoding);
 };
