@@ -13,7 +13,7 @@
     "postversion": "git commit -m \"Bump package version to $npm_package_version\" package.json; git flow release start $npm_package_version; git flow release finish -m $npm_package_version $npm_package_version; git checkout develop; git merge master"
   },
   "devDependencies": {
-    "@hughescr/eslint-config-default": "^2.8.7",
+    "@hughescr/eslint-config-default": "^2.8.8",
     "@hughescr/serverless-plugin-git-version-json": "^1.1.0",
     "eslint": "^8.14.0",
     "serverless": "^3.16.0",
