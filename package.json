@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "@hughescr/logger": "^2.4.7",
-    "aws-sdk": "^2.1127.0",
+    "aws-sdk": "^2.1128.0",
     "fs": "^0.0.1-security",
     "lodash": "^4.17.21",
     "luxon": "^2.3.2",
