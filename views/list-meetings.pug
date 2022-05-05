@@ -11,20 +11,20 @@ mixin meetingList(type, meetings)
                             div(class='d-flex align-items-start')
                                 h4(class='btn-link') #{meeting.MeetingTitle}
                                 case meeting.ParticipationCount
-                                    when 0: span.badge(class='ms-2 bg-danger') No participants
-                                    when 1: span.badge(class='ms-2 bg-info text-dark') 1 participant
-                                    default: span.badge(class='ms-2 bg-primary') #{meeting.ParticipationCount} participants
-                            small Updated:
+                                    when 0: span.badge(class='mx-2 bg-danger') No participants
+                                    when 1: span.badge(class='mx-2 bg-info text-dark') 1 participant
+                                    default: span.badge(class='mx-2 bg-primary') #{meeting.ParticipationCount} participants
+                            p.small(class='lh-1 fw-lighter') Updated:
                                 +time(meeting.LastUpdatedAt)
                         if meeting.ParticipationCount
-                            h6(class='mb-0') Started at
+                            p(class='mb-1 lh-1') Started:
                                 +time(meeting.MeetingStartTime)
-                            small Scheduled end time
+                            p.small(class='lh-1 fw-lighter') Scheduled end:
                                 +time(meeting.MeetingStartTime.plus(meeting.MeetingDuration))
                         else
-                            h6(class='mb-0') Ended at
+                            p(class='mb-1 lh-1') Ended:
                                 +time(meeting.LastUpdatedAt)
-                            small Started at
+                            p.small(class='lh-1 fw-lighter') Started:
                                 +time(meeting.MeetingStartTime)
         else
             div(class='card-body') &mdash; None &mdash;
