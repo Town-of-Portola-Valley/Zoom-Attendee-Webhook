@@ -73,10 +73,6 @@ const makeEmptyResponse = async (statusCode) => {
 };
 
 module.exports.handleZoomWebhook = async (event) => {
-    const headers = {
-        'X-Git-Version': JSON.stringify(await git_version),
-    };
-
     if(!event) {
         logger.error('No event was received');
 
@@ -291,10 +287,7 @@ module.exports.handleZoomWebhook = async (event) => {
             return makeHTMLResponse(422, `Unexpected event type: ${body.event}`, acceptEncoding);
     }
 
-    return {
-        ...headers,
-        statusCode: 204,
-    };
+    return makeEmptyResponse(204);
 };
 
 module.exports.handleListMeetings = async (event) => {
