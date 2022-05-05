@@ -427,14 +427,14 @@ module.exports.handleListParticipants = async (event) => {
             <dl>
             ${_(results['1']).sortBy('JoinTime').reverse().map(i =>
                `<dt>${i.ParticipantName}${i.ParticipantEmail ? ` &lt;${i.ParticipantEmail}&gt;` : ''}</dt>
-                <dd>Joined the meeting at ${i.JoinTime.toLocaleString(DateTime.DATETIME_SHORT)} (${i.JoinTime.toRelative()})</dd>`).join('')}
+                <dd>Joined the meeting at ${i.JoinTime.setZone('America/Los_Angeles').toLocaleString(DateTime.DATETIME_SHORT)} (${i.JoinTime.toRelative()})</dd>`).join('')}
             </dl>
             <h4>Past Participants: ${results['0'] ? results['0'].length : 0}</h4>
             ${results['0'] ? '' : '&mdash; None &mdash;'}
             <dl>
             ${_(results['0']).sortBy('LeaveTime').reverse().map(i =>
                `<dt>${i.ParticipantName}${i.ParticipantEmail ? ` &lt;${i.ParticipantEmail}&gt;` : ''}</dt>
-                <dd>Left the meeting at ${i.LeaveTime.toLocaleString(DateTime.DATETIME_SHORT)} (${i.LeaveTime.toRelative()})</dd>`).join('')}
+                <dd>Left the meeting at ${i.LeaveTime.setZone('America/Los_Angeles').toLocaleString(DateTime.DATETIME_SHORT)} (${i.LeaveTime.toRelative()})</dd>`).join('')}
             </dl>
         </body>
     </html>
