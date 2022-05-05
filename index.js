@@ -304,7 +304,7 @@ module.exports.handleListMeetings = async (event) => {
         return makeHTMLResponse(500, 'Internal server error occurred');
     }
 
-    const acceptEncoding = event.headers[ACCEPT_ENCODING];
+    const acceptEncoding = event.headers && event.headers[ACCEPT_ENCODING];
 
     const statement = `SELECT MeetingID,
                               MeetingTitle,
@@ -377,7 +377,7 @@ module.exports.handleListParticipants = async (event) => {
         return makeHTMLResponse(500, 'Internal server error occurred');
     }
 
-    const acceptEncoding = event.headers[ACCEPT_ENCODING];
+    const acceptEncoding = event.headers && event.headers[ACCEPT_ENCODING];
     const meetingID = event.pathParameters.meeting_id;
 
     const statement = `SELECT MeetingID,
