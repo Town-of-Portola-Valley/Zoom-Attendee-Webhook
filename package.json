@@ -1,6 +1,6 @@
 {
   "name": "Zoom-Attendee-Webhook",
-  "version": "1.1.3",
+  "version": "1.1.4",
   "description": "An AWS lambda which will act as a webhook for Zoom to track webinar attendees, and then surface an endpoint which allows tracking who is in a webinar.",
   "engines": {
     "node": ">=10.x"
