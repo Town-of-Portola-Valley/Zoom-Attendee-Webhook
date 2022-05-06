@@ -401,6 +401,7 @@ module.exports.handleListParticipants = async (event) => {
                             MeetingDuration: Duration.fromObject({ minutes: i.MeetingDuration }),
                             JoinTime: i.ParticipationCount ? _(i.JoinTimes.values).sortBy().map(DateTime.fromISO).last() : DateTime.now(), // Find the latest join time
                             LeaveTime: i.ParticipationCount ? DateTime.now() : _(i.LeaveTimes.values).sortBy().map(DateTime.fromISO).last(),
+                            ParticipationCount: i.ParticipationCount ? 1 : 0,
                     }))
                     .groupBy('ParticipationCount')
                     .value();
