@@ -360,6 +360,8 @@ module.exports.handleListMeetings = async (event) => {
     return makeHTMLResponse(200, response, acceptEncoding);
 };
 
+const listParticipantsTemplate = pug.compileFile('views/list-participants.pug');
+
 module.exports.handleListParticipants = async (event) => {
     if(!event) {
         logger.error('No event was received');
@@ -389,7 +391,7 @@ module.exports.handleListParticipants = async (event) => {
     const MeetingID = raw.Items[0].MeetingID.N;
     const MeetingStartTime = DateTime.fromISO(raw.Items[0].MeetingStartTime.S);
     const MeetingDuration = Duration.fromObject({ minutes: raw.Items[0].MeetingDuration.N });
-    const participantCount = raw.Items.length;
+    const ParticipantCount = raw.Items.length;
 
     const results = _(raw.Items)
                     .map(AWS.DynamoDB.Converter.unmarshall)
@@ -404,31 +406,28 @@ module.exports.handleListParticipants = async (event) => {
                     .value();
     logger.info({ results: results });
 
-    const response = `
-    <html>
-        <head><title>${MeetingTitle} (${MeetingID})</title></head>
-        <body>
-            <h1>${MeetingTitle} (${MeetingID})</h1>
-            <h2>Started ${MeetingStartTime.toRelative()},
-             scheduled to end ${MeetingStartTime.plus(MeetingDuration).toRelative()}</h2>
-            <h3>Total: ${pluralize('participant', participantCount, true)}</h3>
-            <h4>Current Participants: ${results['1'] ? results['1'].length : 0}</h4>
-            ${results['1'] ? '' : '&mdash; None &mdash;'}
-            <dl>
-            ${_(results['1']).sortBy('JoinTime').reverse().map(i =>
-               `<dt>${i.ParticipantName}${i.ParticipantEmail ? ` &lt;${i.ParticipantEmail}&gt;` : ''}</dt>
-                <dd>Joined the meeting at ${i.JoinTime.setZone('America/Los_Angeles').toLocaleString(DateTime.DATETIME_SHORT)} (${i.JoinTime.toRelative()})</dd>`).join('')}
-            </dl>
-            <h4>Past Participants: ${results['0'] ? results['0'].length : 0}</h4>
-            ${results['0'] ? '' : '&mdash; None &mdash;'}
-            <dl>
-            ${_(results['0']).sortBy('LeaveTime').reverse().map(i =>
-               `<dt>${i.ParticipantName}${i.ParticipantEmail ? ` &lt;${i.ParticipantEmail}&gt;` : ''}</dt>
-                <dd>Left the meeting at ${i.LeaveTime.setZone('America/Los_Angeles').toLocaleString(DateTime.DATETIME_SHORT)} (${i.LeaveTime.toRelative()})</dd>`).join('')}
-            </dl>
-        </body>
-    </html>
-    `;
+    const response = listParticipantsTemplate({
+        DateTime,
+        page: { version: (await git_version)[1].gitVersion },
+        meeting: {
+            MeetingTitle,
+            MeetingID,
+            MeetingStartTime,
+            MeetingDuration,
+            ParticipantCount,
+            CurrentCount: results['1'] ? results['1'].length : 0,
+        },
+        participants: [
+            {
+                title: 'Online',
+                participants: _(results['1']).sortBy('JoinTime').reverse().value(),
+            },
+            {
+                title: 'Left the meeting',
+                participants: _(results['0']).sortBy('LeaveTime').reverse().value(),
+            }
+        ],
+    });
 
     return makeHTMLResponse(200, response, acceptEncoding);
 };

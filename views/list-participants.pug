@@ -1,0 +1,42 @@
+include mixins/participant
+
+mixin participantList(type, participants)
+    div.card(class='list-group-item h-100 w-100')
+        h2(class='card-header') #{type}
+        if participants.length
+            div(class='row row-cols-1 row-cols-md-2 row-cols-lg-4 row-cols-xl-6 g-md-1')
+                each participant in participants
+                    div.col
+                        +participant(participant)
+        else
+            div(class='card-body') &mdash; None &mdash;
+
+doctype html
+html
+    head
+        title #{meeting.MeetingTitle}
+        style
+            include ../css/style.css
+    body
+        div.card(class='border-light')
+            div(class='card-body')
+                h1(class='card-title text-center') #{meeting.MeetingTitle} (#{meeting.MeetingID})
+                h5(class='card-subtitle ms-3') Total participants: #{meeting.ParticipantCount}
+                if meeting.CurrentCount
+                    h3(class='card-subtitle ms-3') Started:
+                        +time(meeting.MeetingStartTime)
+                    case meeting.CurrentCount
+                        when 1: h3(class='card-subtitle text-muted ms-3') Currently: 1 participant
+                        default: h3(class='card-subtitle text-body ms-3') Currently: #{meeting.CurrentCount} participants
+                    p.small(class='card-text lh-1 fw-lighter ms-3') Scheduled end:
+                        +time(meeting.MeetingStartTime.plus(meeting.MeetingDuration))
+                else
+                    h5(class='card-subtitle text-danger ms-3') Ended:
+                        +time(participants[1].participants[0].LeaveTime)
+                    p.small(class='card-text lh-1 fw-lighter ms-3') Started:
+                        +time(meeting.MeetingStartTime)
+                div(class='list-group-flush')
+                    each participantGroup in participants
+                        +participantList(participantGroup.title, participantGroup.participants)
+        div(class='d-flex w-100 justify-content-end')
+            small(class='fw-lighter mx-3 mb-1') Version: #{page.version}
