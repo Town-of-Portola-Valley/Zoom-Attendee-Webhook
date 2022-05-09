@@ -3,8 +3,8 @@ mixin participant(p)
     div.card(class='h-100')
         div(class='card-body')
             h5(class='card-title') #{p.ParticipantName}
-            if p.ParticipantEmail
-                h6(class='fw-light card-subtitle') #{p.ParticipantEmail}
+            //- if p.ParticipantEmail
+            //-     h6(class='fw-light card-subtitle') #{p.ParticipantEmail}
             p(class='small fw-lighter card-text text-wrap')
                 if p.ParticipationCount
                     | Joined:
