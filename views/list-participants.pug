@@ -24,7 +24,7 @@ html
             div(class='card-body')
                 a(href='/' class='btn btn-outline-primary float-start ms-3 my-2') < Meetings list
                 h1(class='card-title text-end') #{meeting.MeetingTitle} (#{meeting.MeetingID})
-                h5(class='card-subtitle ms-3') Total participants: #{meeting.ParticipantCount}
+                h5(class='card-subtitle ms-3 my-md-1') Total participants: #{meeting.ParticipantCount}
                 if meeting.CurrentCount
                     h5(class='card-subtitle ms-3') Started:
                         +time(meeting.MeetingStartTime)
