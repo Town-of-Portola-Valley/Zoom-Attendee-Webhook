@@ -21,6 +21,7 @@ html
     body
         div.card(class='border-light')
             div(class='card-body')
+                a(href='/' class='btn btn-outline-primary float-start') < Meetings list
                 h1(class='card-title text-center') #{meeting.MeetingTitle} (#{meeting.MeetingID})
                 h5(class='card-subtitle ms-3') Total participants: #{meeting.ParticipantCount}
                 if meeting.CurrentCount
