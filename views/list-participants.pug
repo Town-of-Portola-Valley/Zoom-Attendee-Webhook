@@ -16,14 +16,15 @@ html
     head
         title #{meeting.MeetingTitle}
         meta(name='viewport' content='width=device-width, initial-scale=1')
+        meta(name='format-detection' content='telephone=no')
         style
             include ../css/style.css
     body
         div.card(class='border-light')
             div(class='card-body')
-                a(href='/' class='btn btn-outline-primary float-start ms-3') < Meetings list
-                h1(class='card-title text-center') #{meeting.MeetingTitle} (#{meeting.MeetingID})
-                h5(class='card-subtitle ms-3') Total participants: #{meeting.ParticipantCount}
+                a(href='/' class='btn btn-outline-primary float-start ms-3 my-2') < Meetings list
+                h1(class='card-title text-end') #{meeting.MeetingTitle} (#{meeting.MeetingID})
+                h5(class='card-subtitle ms-3 my-md-1') Total participants: #{meeting.ParticipantCount}
                 if meeting.CurrentCount
                     h5(class='card-subtitle ms-3') Started:
                         +time(meeting.MeetingStartTime)
