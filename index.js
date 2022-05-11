@@ -39,6 +39,7 @@ const git_version = stat('./git_version.json')
 const AUTHORIZATION_CHECK = process.env.ZOOM_AUTHORIZATION_CODE;
 
 const ACCEPT_ENCODING = 'accept-encoding';
+const KEEP_ALIVE = 'keep-alive';
 
 const makeHTMLResponse = async (statusCode, body, acceptEncoding) => {
     let maybeZipped = {};
@@ -86,6 +87,10 @@ module.exports.handleZoomWebhook = async (event) => {
         logger.error('No event was received');
 
         return makeHTMLResponse(500, 'Internal server error occurred', '');
+    }
+
+    if(event[KEEP_ALIVE]) {
+        return makeEmptyResponse(204);
     }
 
     if(!event.headers) {
@@ -308,6 +313,10 @@ module.exports.handleListMeetings = async (event) => {
         return makeHTMLResponse(500, 'Internal server error occurred');
     }
 
+    if(event[KEEP_ALIVE]) {
+        return makeEmptyResponse(204);
+    }
+
     const acceptEncoding = event.headers && event.headers[ACCEPT_ENCODING];
 
     const statement = `SELECT MeetingID,
@@ -367,6 +376,10 @@ module.exports.handleListParticipants = async (event) => {
         logger.error('No event was received');
 
         return makeHTMLResponse(500, 'Internal server error occurred');
+    }
+
+    if(event[KEEP_ALIVE]) {
+        return makeEmptyResponse(204);
     }
 
     const acceptEncoding = event.headers && event.headers[ACCEPT_ENCODING];
