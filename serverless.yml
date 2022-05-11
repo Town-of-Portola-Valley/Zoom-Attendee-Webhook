@@ -110,6 +110,12 @@ functions:
     handler: index.handleZoomWebhook
     events:
       - httpApi: POST /hook
+      - schedule:
+          description: Scheduled ping to the lambda to keep it warm
+          rate: rate(1 minute)
+          enabled: true
+          input:
+            keep-alive: true
 
   handleListMeetings:
     description: >
@@ -117,6 +123,12 @@ functions:
     handler: index.handleListMeetings
     events:
       - httpApi: GET /
+      - schedule:
+          description: Scheduled ping to the lambda to keep it warm
+          rate: rate(1 minute)
+          enabled: true
+          input:
+            keep-alive: true
 
   handleListParticipants:
     description: >
@@ -124,6 +136,12 @@ functions:
     handler: index.handleListParticipants
     events:
       - httpApi: GET /meeting/{meeting_id}
+      - schedule:
+          description: Scheduled ping to the lambda to keep it warm
+          rate: rate(1 minute)
+          enabled: true
+          input:
+            keep-alive: true
 
 resources:
   Resources:
