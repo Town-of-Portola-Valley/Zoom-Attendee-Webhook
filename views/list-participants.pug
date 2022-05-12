@@ -41,5 +41,7 @@ html
                 div(class='list-group-flush')
                     each participantGroup in participants
                         +participantList(participantGroup.title, participantGroup.participants)
-        div(class='d-flex w-100 justify-content-end')
+        div(class='d-flex w-100 justify-content-between')
+            a(target='_blank' href='https://github.com/Town-of-Portola-Valley/Zoom-Attendee-Webhook' class='fw-lighter mx-3 mb-1') Site Source Code
+            a(target='_blank' href='https://github.com/Town-of-Portola-Valley/Zoom-Attendee-Webhook/issues' class='fw-lighter mx-3 mb-1') Feedback
             small(class='fw-lighter mx-3 mb-1') Version: #{page.version}
