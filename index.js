@@ -64,6 +64,11 @@ const makeHTMLResponse = async (statusCode, body, acceptEncoding) => {
         statusCode: statusCode,
         headers: {
             ...maybeZipped,
+            'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
+            'Content-Security-Policy': "default-src 'self' https: data: 'unsafe-inline'; script-src 'self' 'unsafe-inline' cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' cdnjs.cloudflare.com",
+            'X-Frame-Options': 'SAMEORIGIN',
+            'X-Content-Type-Options': 'nosniff',
+            'Referrer-Policy': 'strict-origin',
             'X-Git-Version': JSON.stringify(await git_version),
             'Content-Type': 'text/html',
             Vary: 'Accept-Encoding',
