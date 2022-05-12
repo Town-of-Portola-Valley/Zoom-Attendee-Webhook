@@ -42,6 +42,6 @@ html
             each meetingGroup in meetings
                 +meetingList(meetingGroup.title, meetingGroup.meetings)
         div(class='d-flex w-100 justify-content-between')
-            a(target='_blank' href='https://github.com/Town-of-Portola-Valley/Zoom-Attendee-Webhook' class='fw-lighter mx-3 mb-1') Site Source Code
-            a(target='_blank' href='https://github.com/Town-of-Portola-Valley/Zoom-Attendee-Webhook/issues' class='fw-lighter mx-3 mb-1') Feedback
+            a(target='_blank' rel='external noopener noreferrer' href='https://github.com/Town-of-Portola-Valley/Zoom-Attendee-Webhook' class='fw-lighter mx-3 mb-1') Site Source Code
+            a(target='_blank' rel='external noopener noreferrer'  href='https://github.com/Town-of-Portola-Valley/Zoom-Attendee-Webhook/issues' class='fw-lighter mx-3 mb-1') Feedback
             small(class='fw-lighter mx-3 mb-1') Version: #{page.version}
