@@ -38,10 +38,13 @@ const git_version = stat('./git_version.json')
 
 const AUTHORIZATION_CHECK = process.env.ZOOM_AUTHORIZATION_CODE;
 
+const NO_EVENT_RECEIVED = 'No event was received';
+const INTERNAL_SERVER_ERROR = 'Internal server error occurred';
+
 const ACCEPT_ENCODING = 'accept-encoding';
 const KEEP_ALIVE = 'keep-alive';
 
-const makeHTMLResponse = async (statusCode, body, acceptEncoding) => {
+const makeHTMLResponse = async (statusCode, body, acceptEncoding = '') => {
     let maybeZipped = {};
     let base64Encoded = false;
     let convertedBody = body;
@@ -89,9 +92,9 @@ const makeEmptyResponse = async (statusCode) => {
 
 module.exports.handleZoomWebhook = async (event) => {
     if(!event) {
-        logger.error('No event was received');
+        logger.error(NO_EVENT_RECEIVED);
 
-        return makeHTMLResponse(500, 'Internal server error occurred', '');
+        return makeHTMLResponse(500, INTERNAL_SERVER_ERROR);
     }
 
     if(event[KEEP_ALIVE]) {
@@ -101,7 +104,7 @@ module.exports.handleZoomWebhook = async (event) => {
     if(!event.headers) {
         logger.error('No headers were in the event', event);
 
-        return makeHTMLResponse(500, 'Internal server error occurred', '');
+        return makeHTMLResponse(500, INTERNAL_SERVER_ERROR);
     }
 
     const acceptEncoding = event.headers[ACCEPT_ENCODING];
@@ -313,9 +316,9 @@ const listMeetingsTemplate = pug.compileFile('views/list-meetings.pug');
 
 module.exports.handleListMeetings = async (event) => {
     if(!event) {
-        logger.error('No event was received');
+        logger.error(NO_EVENT_RECEIVED);
 
-        return makeHTMLResponse(500, 'Internal server error occurred');
+        return makeHTMLResponse(500, INTERNAL_SERVER_ERROR);
     }
 
     if(event[KEEP_ALIVE]) {
@@ -378,9 +381,9 @@ const listParticipantsTemplate = pug.compileFile('views/list-participants.pug');
 
 module.exports.handleListParticipants = async (event) => {
     if(!event) {
-        logger.error('No event was received');
+        logger.error(NO_EVENT_RECEIVED);
 
-        return makeHTMLResponse(500, 'Internal server error occurred');
+        return makeHTMLResponse(500, INTERNAL_SERVER_ERROR);
     }
 
     if(event[KEEP_ALIVE]) {
