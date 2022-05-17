@@ -187,6 +187,9 @@ resources:
           # LastUpdatedAt is timestamp that this record was last modified as YYYY-MM-DDTHH:MM:SSZ
           - AttributeName: LastUpdatedAt
             AttributeType: S
+          # EventTimestamps is a log of all the timestamps of events sent by the API for this user/meeting
+          # - AttributeName: EventTimestamps
+          #   AttributeType: NS
         KeySchema:
           - AttributeName: MeetingID
             KeyType: HASH
