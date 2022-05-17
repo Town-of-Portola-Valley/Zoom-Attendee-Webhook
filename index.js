@@ -150,6 +150,7 @@ module.exports.handleZoomWebhook = async (event) => {
                     JoinTime: body.payload.object.participant.join_time,
                 },
                 LastUpdatedAt: DateTime.utc().toISO(),
+                EventTimestamp: body.event_ts,
             };
             logger.info({ JOINED: joined });
 
@@ -163,18 +164,21 @@ module.exports.handleZoomWebhook = async (event) => {
                 SET JoinTimes=set_add(JoinTimes, <<'${joined.participant.JoinTime}'>>)
                 SET ParticipationCount=ParticipationCount+1
                 SET LastUpdatedAt=?
+                SET EventTimestamps=set_add(EventTimestamps, <<${joined.EventTimestamp}>>)
                 WHERE MeetingID=?
                 AND ParticipantID=?
+                AND NOT contains(EventTimestamps, ?)
             `;
             params = [
                 { S: joined.webinar.MeetingTitle },
                 { S: joined.webinar.MeetingStartTime },
-                { N: `${joined.webinar.MeetingDuration}` },
+                { N: joined.webinar.MeetingDuration.toString() },
                 { S: joined.participant.ParticipantName },
                 { S: joined.participant.ParticipantEmail },
                 { S: DateTime.utc().toISO() },
-                { N: `${joined.webinar.MeetingID}` },
+                { N: joined.webinar.MeetingID },
                 { S: joined.participant.ParticipantID },
+                { N: joined.EventTimestamp.toString() },
             ];
 
             await dynamoDB.executeStatement({
@@ -182,7 +186,13 @@ module.exports.handleZoomWebhook = async (event) => {
                 Parameters: params,
             }).promise()
             .catch(err => {
-                logger.warn({ err: err });
+                // The update failed, which means no record was found - either the participant hasn't been in the meeting yet
+                // OR
+                // This event has already been processed, but took longer than 3000ms and timed out on the client side, so
+                // Zoom is resending the event; we de-dupe the event timestamp per participant/meeting so if this timestamp
+                // was seen before, update will fail; we then will try insert which also should fail.
+                // If the user/meeting DID NOT exist, then the insert will succeed.
+                logger.info('Update failed', { err: err });
                 statement = `INSERT INTO PVWebinarAttendees
                       VALUE { 'MeetingID':?,
                               'ParticipantID':?,
@@ -194,27 +204,33 @@ module.exports.handleZoomWebhook = async (event) => {
                               'ParticipantEmail':?,
                               'JoinTimes':?,
                               'ParticipationCount':?,
-                              'LastUpdatedAt':?
+                              'LastUpdatedAt':?,
+                              'EventTimestamps':?
                           }
                 `;
                 params = [
-                    { N: `${joined.webinar.MeetingID}` },
+                    { N: joined.webinar.MeetingID },
                     { S: joined.participant.ParticipantID },
                     { S: joined.webinar.MeetingTitle },
                     { S: joined.webinar.MeetingStartTime },
-                    { N: `${joined.webinar.MeetingDuration}` },
-                    { NS: [`${joined.participant.ParticipantSessionID}`] },
+                    { N: joined.webinar.MeetingDuration.toString() },
+                    { NS: [joined.participant.ParticipantSessionID] },
                     { S: joined.participant.ParticipantName },
                     { S: joined.participant.ParticipantEmail },
                     { SS: [joined.participant.JoinTime] },
                     { N: '1' },
                     { S: DateTime.utc().toISO() },
+                    { NS: [joined.EventTimestamp.toString()] },
                 ];
 
                 return dynamoDB.executeStatement({
                     Statement: statement,
                     Parameters: params,
                 }).promise();
+            })
+            .catch(err => {
+                // We should only arrive here if this is a duplicate event
+                logger.info('Duplicate event; ignoring', { err: err });
             });
 
             break;
@@ -235,6 +251,7 @@ module.exports.handleZoomWebhook = async (event) => {
                     LeaveTime: body.payload.object.participant.leave_time,
                 },
                 LastUpdatedAt: DateTime.utc().toISO(),
+                EventTimestamp: +body.event_ts,
             };
             logger.info({ LEFT: left });
             statement = `UPDATE PVWebinarAttendees
@@ -247,18 +264,21 @@ module.exports.handleZoomWebhook = async (event) => {
                 SET LeaveTimes=set_add(LeaveTimes, <<'${left.participant.LeaveTime}'>>)
                 SET ParticipationCount=ParticipationCount-1
                 SET LastUpdatedAt=?
+                SET EventTimestamps=set_add(EventTimestamps, <<${left.EventTimestamp}>>)
                 WHERE MeetingID=?
                 AND ParticipantID=?
+                AND NOT contains(EventTimestamps, ?)
             `;
             params = [
                 { S: left.webinar.MeetingTitle },
                 { S: left.webinar.MeetingStartTime },
-                { N: `${left.webinar.MeetingDuration}` },
+                { N: left.webinar.MeetingDuration.toString() },
                 { S: left.participant.ParticipantName },
                 { S: left.participant.ParticipantEmail },
                 { S: DateTime.utc().toISO() },
-                { N: `${left.webinar.MeetingID}` },
+                { N: left.webinar.MeetingID },
                 { S: left.participant.ParticipantID },
+                { N: left.EventTimestamp.toString() },
             ];
 
             await dynamoDB.executeStatement({
@@ -266,7 +286,13 @@ module.exports.handleZoomWebhook = async (event) => {
                 Parameters: params,
             }).promise()
             .catch(err => {
-                logger.warn({ err: err });
+                // The update failed, which means no record was found - either the participant hasn't been in the meeting yet
+                // OR
+                // This event has already been processed, but took longer than 3000ms and timed out on the client side, so
+                // Zoom is resending the event; we de-dupe the event timestamp per participant/meeting so if this timestamp
+                // was seen before, update will fail; we then will try insert which also should fail.
+                // If the user/meeting DID NOT exist, then the insert will succeed.
+                logger.info('Update failed', { err: err });
                 statement = `INSERT INTO PVWebinarAttendees
                       VALUE { 'MeetingID':?,
                               'ParticipantID':?,
@@ -278,27 +304,33 @@ module.exports.handleZoomWebhook = async (event) => {
                               'ParticipantEmail':?,
                               'LeaveTimes':?,
                               'ParticipationCount':?,
-                              'LastUpdatedAt':?
+                              'LastUpdatedAt':?,
+                              'EventTimestamps':?
                           }
                 `;
                 params = [
-                    { N: `${left.webinar.MeetingID}` },
+                    { N: left.webinar.MeetingID },
                     { S: left.participant.ParticipantID },
                     { S: left.webinar.MeetingTitle },
                     { S: left.webinar.MeetingStartTime },
-                    { N: `${left.webinar.MeetingDuration}` },
-                    { NS: [`${left.participant.ParticipantSessionID}`] },
+                    { N: left.webinar.MeetingDuration.toString() },
+                    { NS: [left.participant.ParticipantSessionID] },
                     { S: left.participant.ParticipantName },
                     { S: left.participant.ParticipantEmail },
                     { SS: [left.participant.LeaveTime] },
                     { N: '0' },
                     { S: DateTime.utc().toISO() },
+                    { NS: [left.EventTimestamp.toString()] },
                 ];
 
                 return dynamoDB.executeStatement({
                     Statement: statement,
                     Parameters: params,
                 }).promise();
+            })
+            .catch(err => {
+                // We should only arrive here if this is a duplicate event
+                logger.info('Duplicate event; ignoring', { err: err });
             });
 
             break;
