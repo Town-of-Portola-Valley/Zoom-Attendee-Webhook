@@ -16,17 +16,28 @@ provider:
   timeout: 10
   region: us-west-2
   versionFunctions: false
+  stage: ${opt:stage, 'PV'}
 
   deploymentBucket:
     name: ${ssm:/serverless/deploymentbucket/prefix}-${self:provider.region}
     blockPublicAccess: true
 
   environment:
+    # ZOOM_AUTHORIZATION_CODE used to validate incoming webhook calls from Zoom
     ZOOM_AUTHORIZATION_CODE: ${param:ZOOM_AUTHORIZATION_CODE}
+    # ORGANIZATION_NAME used as part of the page title on generated webpages
+    ORGANIZATION_NAME: ${param:ORGANIZATION_NAME}
+    # DB_TABLE used by code to store/retrieve data in DynamoDB
+    DB_TABLE:
+      Fn::Select:
+        - 1
+        - Fn::Split:
+          - '/'
+          - { Fn::GetAtt: [ DBTable, Arn ] }
 
   stackTags:
-    Project: "PV Zoom Attendees"
-    Organization: "Town of Portola Valley"
+    Organization: ${param:ORGANIZATION_NAME}
+    Project: 'Zoom Attendees'
 
   logs:
     httpApi:
@@ -59,11 +70,11 @@ provider:
           Action:
             - dynamodb:*
           Resource:
-            - { Fn::GetAtt: [ PVWebinarAttendees, Arn ] }
+            - { Fn::GetAtt: [ DBTable, Arn ] }
             - Fn::Join:
               - /
               -
-                - { Fn::GetAtt: [ PVWebinarAttendees, Arn ] }
+                - { Fn::GetAtt: [ DBTable, Arn ] }
                 - index/*
 
 package:
@@ -95,7 +106,7 @@ custom:
 
   customDomain:
     http:
-      domainName: pv-zooms.rungie.com
+      domainName: ${param:DOMAIN_NAME}
       autoDomain: true
       createRoute53Record: true
       createRoute53IPv6Record: true
@@ -104,7 +115,7 @@ custom:
 
 functions:
 
-  handleZoomWebhook:
+  webhook:
     description: >
       Handle participant joined/left webhook posts from Zoom. Update DynamoDB table to track
       adding one attendance point for every join and decrementing for every leave.
@@ -118,7 +129,7 @@ functions:
           input:
             keep-alive: true
 
-  handleListMeetings:
+  index:
     description: >
       Read data from DynamoDB and list all meetings that have a non-zero participant count, as HTML with links to each meeting.
     handler: index.handleListMeetings
@@ -131,7 +142,7 @@ functions:
           input:
             keep-alive: true
 
-  handleListParticipants:
+  meeting:
     description: >
       Read data from DynamoDB for a given meeting ID and list all the participants in that meeting, as HTML.
     handler: index.handleListParticipants
@@ -146,10 +157,11 @@ functions:
 
 resources:
   Resources:
-    PVWebinarAttendees:
+    DBTable:
       Type: AWS::DynamoDB::Table
       Properties:
-        TableName: PVWebinarAttendees
+        TableName:
+          Fn::Join: [ '' , [ '${param:SHORT_PREFIX}', 'WebinarAttendees' ] ]
         BillingMode: PAY_PER_REQUEST
         AttributeDefinitions:
           # Meeting ID is numeric "object.id" and is the ID of the webinar

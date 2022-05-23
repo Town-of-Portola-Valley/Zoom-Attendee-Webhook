@@ -37,6 +37,8 @@ const git_version = stat('./git_version.json')
     });
 
 const AUTHORIZATION_CHECK = process.env.ZOOM_AUTHORIZATION_CODE;
+const ORGANIZATION_NAME   = process.env.ORGANIZATION_NAME;
+const DB_TABLE            = process.env.DB_TABLE;
 
 const NO_EVENT_RECEIVED = 'No event was received';
 const INTERNAL_SERVER_ERROR = 'Internal server error occurred';
@@ -154,7 +156,7 @@ module.exports.handleZoomWebhook = async (event) => {
             };
             logger.info({ JOINED: joined });
 
-            statement = `UPDATE PVWebinarAttendees
+            statement = `UPDATE ${DB_TABLE}
                 SET MeetingTitle=?
                 SET MeetingStartTime=?
                 SET MeetingDuration=?
@@ -193,7 +195,7 @@ module.exports.handleZoomWebhook = async (event) => {
                 // was seen before, update will fail; we then will try insert which also should fail.
                 // If the user/meeting DID NOT exist, then the insert will succeed.
                 logger.info('Update failed', { err: err });
-                statement = `INSERT INTO PVWebinarAttendees
+                statement = `INSERT INTO ${DB_TABLE}
                       VALUE { 'MeetingID':?,
                               'ParticipantID':?,
                               'MeetingTitle':?,
@@ -254,7 +256,7 @@ module.exports.handleZoomWebhook = async (event) => {
                 EventTimestamp: +body.event_ts,
             };
             logger.info({ LEFT: left });
-            statement = `UPDATE PVWebinarAttendees
+            statement = `UPDATE ${DB_TABLE}
                 SET MeetingTitle=?
                 SET MeetingStartTime=?
                 SET MeetingDuration=?
@@ -293,7 +295,7 @@ module.exports.handleZoomWebhook = async (event) => {
                 // was seen before, update will fail; we then will try insert which also should fail.
                 // If the user/meeting DID NOT exist, then the insert will succeed.
                 logger.info('Update failed', { err: err });
-                statement = `INSERT INTO PVWebinarAttendees
+                statement = `INSERT INTO ${DB_TABLE}
                       VALUE { 'MeetingID':?,
                               'ParticipantID':?,
                               'MeetingTitle':?,
@@ -365,7 +367,7 @@ module.exports.handleListMeetings = async (event) => {
                               MeetingDuration,
                               ParticipationCount,
                               LastUpdatedAt
-                        FROM PVWebinarAttendees."MeetingID-LastUpdatedAt"
+                        FROM ${DB_TABLE}."MeetingID-LastUpdatedAt"
                         WHERE LastUpdatedAt > '${DateTime.utc().minus({ days: 7 }).toISO()}'`;
 
     const raw = await dynamoDB.executeStatement({ Statement: statement }).promise();
@@ -393,7 +395,7 @@ module.exports.handleListMeetings = async (event) => {
 
     const response = listMeetingsTemplate({
         DateTime,
-        page: { title: 'Portola Valley Webinars', version: (await git_version)[1].gitVersion },
+        page: { title: `${ORGANIZATION_NAME} Webinars`, version: (await git_version)[1].gitVersion },
         meetings: [
             {
                 title: 'Active Meetings',
@@ -434,7 +436,7 @@ module.exports.handleListParticipants = async (event) => {
                               ParticipationCount,
                               JoinTimes,
                               LeaveTimes
-                        FROM PVWebinarAttendees."MeetingID-ParticipationCount"
+                        FROM ${DB_TABLE}."MeetingID-ParticipationCount"
                         WHERE MeetingID = ${meetingID}`;
 
     const raw = await dynamoDB.executeStatement({ Statement: statement }).promise();
