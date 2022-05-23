@@ -6,5 +6,8 @@ module.exports =
     rules:
     {
         'no-console': 'off',
+        'node/no-unpublished-require': ['error', {
+            allowModules: ['aws-sdk']
+        }],
     },
 };
