@@ -13,3 +13,8 @@ Feedback
 --------
 
 If you have any feedback on this app, please submit it [here](https://github.com/Town-of-Portola-Valley/Zoom-Attendee-Webhook/issues/new).
+
+Copyright & Usage
+-----------------
+
+This code is copyright by the [Authors](AUTHORS.md) under the [Apache License 2.0](LICENSE.md)
