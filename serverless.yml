@@ -6,6 +6,7 @@ app: zoom-attendee-webhook
 #    docs.serverless.com
 
 service: Zoom-Attendee-Webhook
+configValidationMode: warn
 
 provider:
   name: aws
