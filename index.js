@@ -145,7 +145,7 @@ module.exports.handleZoomWebhook = async (event) => {
                     MeetingDuration: body.payload.object.duration,
                 },
                 participant: {
-                    ParticipantID: body.payload.object.participant.id || body.payload.object.participant.user_name,
+                    ParticipantID: body.payload.object.participant.participant_user_id || body.payload.object.participant.user_name,
                     ParticipantSessionID: body.payload.object.participant.user_id,
                     ParticipantName: body.payload.object.participant.user_name,
                     ParticipantEmail: body.payload.object.participant.email,
@@ -246,7 +246,7 @@ module.exports.handleZoomWebhook = async (event) => {
                     MeetingDuration: body.payload.object.duration,
                 },
                 participant: {
-                    ParticipantID: body.payload.object.participant.id || body.payload.object.participant.user_name,
+                    ParticipantID: body.payload.object.participant.participant_user_id || body.payload.object.participant.user_name,
                     ParticipantSessionID: body.payload.object.participant.user_id,
                     ParticipantName: body.payload.object.participant.user_name,
                     ParticipantEmail: body.payload.object.participant.email,
