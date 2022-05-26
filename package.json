@@ -1,6 +1,6 @@
 {
   "name": "Zoom-Attendee-Webhook",
-  "version": "1.6.1",
+  "version": "1.6.2",
   "description": "An AWS lambda which will act as a webhook for Zoom to track webinar attendees, and then surface an endpoint which allows tracking who is in a webinar.",
   "engines": {
     "node": ">=10.x"
@@ -15,9 +15,9 @@
   "devDependencies": {
     "@hughescr/eslint-config-default": "^2.8.8",
     "@hughescr/serverless-plugin-git-version-json": "^1.1.0",
-    "aws-sdk": "^2.1140.0",
+    "aws-sdk": "^2.1143.0",
     "eslint": "^8.16.0",
-    "serverless": "^3.18.1",
+    "serverless": "^3.18.2",
     "serverless-domain-manager": "^6.0.3",
     "serverless-plugin-log-retention": "^2.0.0",
     "serverless-plugin-zip-symlinks-compress-harder": "^0.11.1"

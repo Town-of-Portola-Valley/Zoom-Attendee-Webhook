@@ -70,10 +70,11 @@ const makeHTMLResponse = async (statusCode, body, acceptEncoding = '') => {
         headers: {
             ...maybeZipped,
             'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-            'Content-Security-Policy': "default-src 'self' https: data: 'unsafe-inline'; script-src 'self' 'unsafe-inline' cdnjs.cloudflare.com; style-src 'self' 'unsafe-inline' cdnjs.cloudflare.com",
+            'Content-Security-Policy': "default-src 'self' https: data:; script-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline'",
             'X-Frame-Options': 'SAMEORIGIN',
             'X-Content-Type-Options': 'nosniff',
             'Referrer-Policy': 'strict-origin',
+            'X-XSS-Protection': '1; mode=block',
             'X-Git-Version': JSON.stringify(await git_version),
             'Content-Type': 'text/html',
             Vary: 'Accept-Encoding',
