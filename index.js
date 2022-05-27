@@ -372,10 +372,16 @@ module.exports.handleListMeetings = async (event) => {
                         FROM ${DB_TABLE}."MeetingID-LastUpdatedAt"
                         WHERE LastUpdatedAt > '${DateTime.utc().minus({ days: 7 }).toISO()}'`;
 
-    const raw = await dynamoDB.executeStatement({ Statement: statement }).promise();
-    logger.info('RAW', raw);
+    let nextToken = undefined;
+    let items = [];
+    do {
+        const raw = await dynamoDB.executeStatement({ Statement: statement, nextToken }).promise();
+        logger.info('RAW', raw);
+        items = [...items, ...raw.Items];
+        nextToken = raw.nextToken;
+    } while(nextToken);
 
-    const results = _(raw.Items)
+    const results = _(items)
                     .map(AWS.DynamoDB.Converter.unmarshall)
                     .reduce((sum, i) => {
                         const previous_last_updated = sum[i.MeetingID] && sum[i.MeetingID].LastUpdatedAt || DateTime.now().minus({ years: 1 });
@@ -441,16 +447,22 @@ module.exports.handleListParticipants = async (event) => {
                         FROM ${DB_TABLE}."MeetingID-ParticipationCount"
                         WHERE MeetingID = ${meetingID}`;
 
-    const raw = await dynamoDB.executeStatement({ Statement: statement }).promise();
-    logger.info('RAW', raw);
+    let nextToken = undefined;
+    let items = [];
+    do {
+        const raw = await dynamoDB.executeStatement({ Statement: statement, nextToken }).promise();
+        logger.info('RAW', raw);
+        items = [...items, ...raw.Items];
+        nextToken = raw.nextToken;
+    } while(nextToken);
 
-    const MeetingTitle = raw.Items[0].MeetingTitle.S;
-    const MeetingID = raw.Items[0].MeetingID.N;
-    const MeetingStartTime = DateTime.fromISO(raw.Items[0].MeetingStartTime.S);
-    const MeetingDuration = Duration.fromObject({ minutes: raw.Items[0].MeetingDuration.N });
-    const ParticipantCount = raw.Items.length;
+    const MeetingTitle = items[0].MeetingTitle.S;
+    const MeetingID = items[0].MeetingID.N;
+    const MeetingStartTime = DateTime.fromISO(items[0].MeetingStartTime.S);
+    const MeetingDuration = Duration.fromObject({ minutes: items[0].MeetingDuration.N });
+    const ParticipantCount = items.length;
 
-    const results = _(raw.Items)
+    const results = _(items)
                     .map(AWS.DynamoDB.Converter.unmarshall)
                     .map(i => ({
                             ...i,
