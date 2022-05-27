@@ -1,8 +1,9 @@
 'use strict';
 
-const fs = require('fs');
-const promisify = require('util').promisify;
-const stat = promisify(fs.stat);
+const { stat } = require('fs').promises;
+
+const { promisify } = require('util');
+
 const zlib = require('zlib');
 const brotli = promisify(zlib.brotliCompress);
 const gzip = promisify(zlib.gzip);
