@@ -225,6 +225,9 @@ resources:
                 - MeetingStartTime
                 - MeetingDuration
                 - ParticipationCount
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
           - IndexName: MeetingID-ParticipationCount
             KeySchema:
               - AttributeName: MeetingID
@@ -241,3 +244,6 @@ resources:
                 - ParticipantEmail
                 - JoinTimes
                 - LeaveTimes
+            ProvisionedThroughput:
+              ReadCapacityUnits: 1
+              WriteCapacityUnits: 1
