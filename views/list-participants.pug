@@ -1,4 +1,6 @@
 include mixins/participant
+include mixins/standard-head
+include mixins/bootstrap-stylesheet
 
 mixin participantList(type, participants)
     div.card(class='list-group-item h-100 w-100')
@@ -15,10 +17,8 @@ doctype html
 html
     head
         title #{meeting.MeetingTitle}
-        meta(name='viewport' content='width=device-width, initial-scale=1')
+        +standardHead
         meta(name='format-detection' content='telephone=no')
-        style
-            include ../css/style.css
     body
         div.card(class='border-light')
             div(class='card-body')

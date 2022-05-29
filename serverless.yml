@@ -30,11 +30,7 @@ provider:
     ORGANIZATION_NAME: ${param:ORGANIZATION_NAME}
     # DB_TABLE used by code to store/retrieve data in DynamoDB
     DB_TABLE:
-      Fn::Select:
-        - 1
-        - Fn::Split:
-          - '/'
-          - { Fn::GetAtt: [ DBTable, Arn ] }
+      Ref: DBTable
 
   stackTags:
     Organization: ${param:ORGANIZATION_NAME}
