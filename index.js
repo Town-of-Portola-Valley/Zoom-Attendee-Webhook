@@ -1,10 +1,10 @@
 'use strict';
 
-const { stat } = require('fs').promises;
+const { stat } = require('node:fs').promises;
 
-const { promisify } = require('util');
+const { promisify } = require('node:util');
 
-const zlib = require('zlib');
+const zlib = require('node:zlib');
 const brotli = promisify(zlib.brotliCompress);
 const gzip = promisify(zlib.gzip);
 const deflate = promisify(zlib.deflate);
