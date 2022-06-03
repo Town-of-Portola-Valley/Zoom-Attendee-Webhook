@@ -9,10 +9,17 @@ body:
   attributes:
     value: "###### Please fill in a short title above that summarizes the problem in a few words"
 
+- type: input
+  attributes:
+    label: App version
+    description: Please provide the version of the app you're using when you experience this bug. The version number is in the bottom-left corner of every screen.
+  validations:
+    required: false
+
 - type: textarea
   attributes:
     label: Current behavior
-    description: A description of what you're experiencing
+    description: A description of what you're experiencing, including screenshots if you have them
   validations:
     required: true
 
@@ -27,13 +34,10 @@ body:
   attributes:
     label: Steps to reproduce
     description: If you can reproduce this behavior, what steps do you need to go through?
-    placeholder: |
-        1. Open browser
-        
-        2. Go to URL
-        
-        3. Click button XYZ
-        
+    placeholder: |-
+        1. Open browser; 
+        2. Go to URL; 
+        3. Click button XYZ (screenshots helpful); 
         4. See error...
   validations:
     required: false
@@ -52,8 +56,8 @@ body:
 - type: dropdown
   attributes:
     label: Web browser
-    description: Which web browser are you using when you see this bug?
-    multiple: false
+    description: With which web browser(s) have you seen this bug?
+    multiple: true
     options:
       - Edge
       - Chrome
@@ -64,8 +68,8 @@ body:
 - type: dropdown
   attributes:
     label: Operating system
-    description: Which OS are you using when you see this bug?
-    multiple: false
+    description: On which OS(es) have you seen this bug?
+    multiple: true
     options:
       - Windows
       - Mac laptop/desktop
