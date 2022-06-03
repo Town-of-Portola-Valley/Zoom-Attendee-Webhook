@@ -54,6 +54,7 @@ const git_version = stat('../git_version.json')
         // If we didn't stat the file then hardcode some stuff
         return [{ mtime: new Date() }, { gitVersion: '1.0.0' }];
     });
+module.exports.git_version = git_version;
 
 module.exports.makeHTMLResponse = async (statusCode, body, acceptEncoding = '') => {
     let maybeZipped = {};
