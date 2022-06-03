@@ -28,10 +28,10 @@ body:
     label: Steps to reproduce
     description: If you can reproduce this behavior, what steps do you need to go through?
     placeholder: |
-      1. Open browser
-      2. Go to URL
-      3. Click button XYZ
-      4. See error...
+        1. Open browser
+        2. Go to URL
+        3. Click button XYZ
+        4. See error...
   validations:
     required: false
 
