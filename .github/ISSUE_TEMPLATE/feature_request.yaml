@@ -7,7 +7,7 @@ body:
 
 - type: markdown
   attributes:
-    value: "Please fill in a short title above that summarizes your request in a few words"
+    value: "###### Please fill in a short title above that summarizes your request in a few words"
 
 - type: textarea
   attributes:
@@ -43,7 +43,7 @@ body:
     description: How important is this feature to you?
     multiple: false
     options:
-      - Critical: I can't use the app without it
-      - High: I can barely use the app without it
-      - Moderate: I'd prefer the app with it
-      - Low: I love the app it's just irritating this one thing's not there
+      - "Critical: I can't use the app without it"
+      - "High: I can barely use the app without it"
+      - "Moderate: I'd prefer the app with it"
+      - "Low: I love the app it's just irritating this one thing's not there"

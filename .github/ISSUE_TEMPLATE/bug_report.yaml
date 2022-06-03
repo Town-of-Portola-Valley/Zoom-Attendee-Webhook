@@ -7,7 +7,7 @@ body:
 
 - type: markdown
   attributes:
-    value: "Please fill in a short title above that summarizes the problem in a few words"
+    value: "###### Please fill in a short title above that summarizes the problem in a few words"
 
 - type: textarea
   attributes:
