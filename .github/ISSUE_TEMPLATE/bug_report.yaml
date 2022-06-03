@@ -1,0 +1,79 @@
+name: Bug report
+description: Create a report to help us improve
+title: "[BUG] <insert short summary here>"
+labels: [Bug, Triage]
+
+body:
+
+- type: markdown
+  attributes:
+    value: "Please fill in a short title above that summarizes the problem in a few words"
+
+- type: textarea
+  attributes:
+    label: Current behavior
+    description: A description of what you're experiencing
+  validations:
+    required: true
+
+- type: textarea
+  attributes:
+    label: Expected behavior
+    description: If you were expecting something else to happen, what were you expecting?
+  validations:
+    required: false
+
+- type: textarea
+  attributes:
+    label: Steps to reproduce
+    description: If you can reproduce this behavior, what steps do you need to go through?
+  validations:
+    required: false
+  placeholder: |
+    1. Open browser
+    2. Go to URL
+    3. Click button XYZ
+    4. See error...
+
+- type: dropdown
+  attributes:
+    label: Prevalence
+    description: How often do you encounter this bug?
+    multiple: false
+    options:
+      - All the time
+      - Sometimes yes, other times no
+      - I've only seen it once or twice
+      - The bug is purely hypothetical
+
+- type: dropdown
+  attributes:
+    label: Web browser
+    description: Which web browser are you using when you see this bug?
+    multiple: false
+    options:
+      - Edge
+      - Chrome
+      - Safari
+      - Firefox
+      - Other
+
+- type: dropdown
+  attributes:
+    label: Operating system
+    description: Which OS are you using when you see this bug?
+    multiple: false
+    options:
+      - Windows
+      - Mac laptop/desktop
+      - Linux
+      - iPhone/iPad
+      - Android
+      - Other
+
+- type: textarea
+  attributes:
+    labels: Additional context
+    description: Anything else we need to know about the problem?
+  validations:
+    required: false

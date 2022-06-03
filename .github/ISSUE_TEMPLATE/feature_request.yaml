@@ -1,0 +1,49 @@
+name: Feature request
+description: Suggest an idea for this project
+title: '[FEATURE] <insert short summary here>'
+labels: [Feature, Triage]
+
+body:
+
+- type: markdown
+  attributes:
+    value: "Please fill in a short title above that summarizes your request in a few words"
+
+- type: textarea
+  attributes:
+    label: Proposed solution
+    description: Please describe what you would like to see addded to the app
+  validations:
+    required: false
+
+- type: textarea
+  attributes:
+    label: Problem description
+    description: If your feature request is related to a problem, please describe the problem here
+  validations:
+    required: false
+
+- type: textarea
+  attributes:
+    label: Alternatives you've considered
+    description: If you had other ideas for this issue that you considered, please list them here
+  validations:
+    required: false
+
+- type: textarea
+  attributes:
+    label: Context
+    description: Please add any other context or screenshots about the feature request here.
+  validations:
+    required: false
+
+- type: dropdown
+  attributes:
+    label: Importance
+    description: How important is this feature to you?
+    multiple: false
+    options:
+      - Critical: I can't use the app without it
+      - High: I can barely use the app without it
+      - Moderate: I'd prefer the app with it
+      - Low: I love the app it's just irritating this one thing's not there
