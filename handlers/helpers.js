@@ -2,6 +2,7 @@
 
 const { promisify } = require('node:util');
 const { stat } = require('node:fs').promises;
+const path = require('node:path');
 
 const zlib = require('node:zlib');
 const brotli = promisify(zlib.brotliCompress);
@@ -45,10 +46,10 @@ const dynamoDB = new AWS.DynamoDB();
 module.exports.dynamoDB = dynamoDB;
 
 /* istanbul ignore next */
-const git_version = stat('../git_version.json')
+const git_version = stat(path.join(module.path, '..', 'git_version.json'))
     .then(res => {
         // If we did manage to stat the file, then load it
-        return [res, require('../git_version.json')]; // eslint-disable-line node/no-missing-require -- If stat finds the file, it'll be there
+        return [res, require(path.join(module.path, '..', 'git_version.json'))]; // eslint-disable-line node/no-missing-require -- If stat finds the file, it'll be there
     })
     .catch(() => {
         // If we didn't stat the file then hardcode some stuff
