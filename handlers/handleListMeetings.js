@@ -85,7 +85,8 @@ module.exports.handleListMeetings = async (event) => {
                 meetings: _(results).map().filter('ParticipationCount').sortBy('MeetingStartTime').reverse().value(),
             },
             {
-                title: 'Ended Meetings (within last 7 days)',
+                title: 'Ended Meetings',
+                numDays: 7,
                 meetings: _(results).map().filter(i => !i.ParticipationCount).sortBy('MeetingStartTime').reverse().value(),
             }
         ],
