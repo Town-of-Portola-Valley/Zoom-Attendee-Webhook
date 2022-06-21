@@ -38,6 +38,8 @@ module.exports.handleListMeetings = async (event) => {
 
     const acceptEncoding = event.headers && event.headers[ACCEPT_ENCODING];
 
+    const numDays = event.queryStringParameters && event.queryStringParameters.numDays || 7;
+
     const statement = `SELECT MeetingID,
                               MeetingTitle,
                               MeetingStartTime,
@@ -45,7 +47,7 @@ module.exports.handleListMeetings = async (event) => {
                               ParticipationCount,
                               LastUpdatedAt
                         FROM ${DB_TABLE}."MeetingID-LastUpdatedAt"
-                        WHERE LastUpdatedAt > '${DateTime.utc().minus({ days: 7 }).toISO()}'`;
+                        WHERE LastUpdatedAt > '${DateTime.utc().minus({ days: numDays }).toISO()}'`;
 
     let nextToken = undefined;
     let items = [];
@@ -86,7 +88,7 @@ module.exports.handleListMeetings = async (event) => {
             },
             {
                 title: 'Ended Meetings',
-                numDays: 7,
+                numDays,
                 meetings: _(results).map().filter(i => !i.ParticipationCount).sortBy('MeetingStartTime').reverse().value(),
             }
         ],
