@@ -2,9 +2,21 @@ include mixins/time
 include mixins/standard-head
 include mixins/standard-footer
 
-mixin meetingList(type, meetings)
+mixin meetingList(type, meetings, numDays)
     div.card(class='list-group-item')
-        h2(class='card-header') #{type}
+        if numDays
+            h2(class='card-header') #{type}
+                | (last
+                |
+                span(class='input-group d-inline-flex w-auto')
+                    input(size=3 maxlength=3 value=numDays id="numDays" name="numDays" class="text-end")
+                    button(class='btn btn-sm btn-outline-primary' type='submit')
+                        |
+                        i(class='bi bi-arrow-clockwise fs-5')
+                |
+                | days)
+        else
+            h2(class='card-header') #{type}
         if meetings.length
             div(class='list-group list-group-numbered')
                 each meeting in meetings
@@ -39,6 +51,7 @@ html
     body
         h1(class='my-2 text-center') #{page.title}
         div(class='list-group-flush')
-            each meetingGroup in meetings
-                +meetingList(meetingGroup.title, meetingGroup.meetings)
+            form(method='GET')
+                each meetingGroup in meetings
+                    +meetingList(meetingGroup.title, meetingGroup.meetings, meetingGroup.numDays)
         +standardFooter
