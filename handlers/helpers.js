@@ -49,7 +49,7 @@ module.exports.dynamoDB = dynamoDB;
 const git_version = stat(path.join(module.path, '..', 'git_version.json'))
     .then(res => {
         // If we did manage to stat the file, then load it
-        return [res, require(path.join(module.path, '..', 'git_version.json'))]; // eslint-disable-line node/no-missing-require -- If stat finds the file, it'll be there
+        return [res, require(path.join(module.path, '..', 'git_version.json'))];
     })
     .catch(() => {
         // If we didn't stat the file then hardcode some stuff
