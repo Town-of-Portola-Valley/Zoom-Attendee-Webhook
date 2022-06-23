@@ -1,7 +1,7 @@
 name: Bug report
 description: Create a report to help us improve
 title: "[BUG] <insert short summary here>"
-labels: [Bug, Triage]
+labels: [bug, triage]
 
 body:
 
