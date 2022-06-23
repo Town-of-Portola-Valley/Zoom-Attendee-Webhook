@@ -29,6 +29,107 @@ const { DateTime } = require('luxon');
 //  - 422 if called with an event that is not handled
 //  - 204 if handled
 
+const makeJoinOrLeaveObject = async (joined, payload, event_ts) => {
+    const joinedOrLeft = {
+        webinar: {
+            MeetingID: payload.object.id,
+            MeetingTitle: payload.object.topic,
+            MeetingStartTime: payload.object.start_time,
+            MeetingDuration: payload.object.duration,
+        },
+        participant: {
+            ParticipantID: payload.object.participant.participant_user_id || payload.object.participant.user_name,
+            ParticipantSessionID: payload.object.participant.user_id,
+            ParticipantName: payload.object.participant.user_name,
+            ParticipantEmail: payload.object.participant.email,
+        },
+        LastUpdatedAt: DateTime.utc().toISO(),
+        EventTimestamp: event_ts,
+    };
+    if(joined) {
+        joinedOrLeft.participant.JoinTime = payload.object.participant.join_time;
+    } else {
+        joinedOrLeft.participant.LeaveTime = payload.object.participant.leave_time;
+    }
+
+    return joinedOrLeft;
+};
+
+const updateJoinOrLeaveIfExists = async (joined, joinOrLeave) => {
+    const joinLeaveFieldName = joined ? 'JoinTimes' : 'LeaveTimes';
+    const joinLeaveTimeValue = joined ? joinOrLeave.participant.JoinTime : joinOrLeave.participant.LeaveTime;
+    const statement = `UPDATE ${DB_TABLE}
+        SET MeetingTitle=?
+        SET MeetingStartTime=?
+        SET MeetingDuration=?
+        SET ParticipantSessionIDs=set_add(ParticipantSessionIDs, <<${joinOrLeave.participant.ParticipantSessionID}>>)
+        SET ParticipantName=?
+        SET ParticipantEmail=?
+        SET ${joinLeaveFieldName}=set_add(${joinLeaveFieldName}, <<'${joinLeaveTimeValue}'>>)
+        SET ParticipationCount=ParticipationCount ${joined ? '+' : '-'} 1
+        SET LastUpdatedAt=?
+        SET EventTimestamps=set_add(EventTimestamps, <<${joinOrLeave.EventTimestamp}>>)
+        WHERE MeetingID=?
+        AND ParticipantID=?
+        AND NOT contains(EventTimestamps, ?)
+    `;
+    const params = [
+        { S: joinOrLeave.webinar.MeetingTitle },
+        { S: joinOrLeave.webinar.MeetingStartTime },
+        { N: joinOrLeave.webinar.MeetingDuration.toString() },
+        { S: joinOrLeave.participant.ParticipantName },
+        { S: joinOrLeave.participant.ParticipantEmail },
+        { S: DateTime.utc().toISO() },
+        { N: joinOrLeave.webinar.MeetingID },
+        { S: joinOrLeave.participant.ParticipantID },
+        { N: joinOrLeave.EventTimestamp.toString() },
+    ];
+
+    return dynamoDB.executeStatement({
+        Statement: statement,
+        Parameters: params,
+    }).promise();
+};
+
+const insertJoinOrLeaveIfNotExists = async (joined, joinOrLeave) => {
+    const joinLeaveFieldName = joined ? 'JoinTimes' : 'LeaveTimes';
+    const joinLeaveTimeValue = joined ? joinOrLeave.participant.JoinTime : joinOrLeave.participant.LeaveTime;
+    const statement = `INSERT INTO ${DB_TABLE}
+          VALUE { 'MeetingID':?,
+                  'ParticipantID':?,
+                  'MeetingTitle':?,
+                  'MeetingStartTime':?,
+                  'MeetingDuration':?,
+                  'ParticipantSessionIDs':?,
+                  'ParticipantName':?,
+                  'ParticipantEmail':?,
+                  '${joinLeaveFieldName}':?,
+                  'ParticipationCount':?,
+                  'LastUpdatedAt':?,
+                  'EventTimestamps':?
+              }
+    `;
+    const params = [
+        { N: joinOrLeave.webinar.MeetingID },
+        { S: joinOrLeave.participant.ParticipantID },
+        { S: joinOrLeave.webinar.MeetingTitle },
+        { S: joinOrLeave.webinar.MeetingStartTime },
+        { N: joinOrLeave.webinar.MeetingDuration.toString() },
+        { NS: [joinOrLeave.participant.ParticipantSessionID] },
+        { S: joinOrLeave.participant.ParticipantName },
+        { S: joinOrLeave.participant.ParticipantEmail },
+        { SS: [joinLeaveTimeValue] },
+        { N: joined ? '1' : '0' },
+        { S: DateTime.utc().toISO() },
+        { NS: [joinOrLeave.EventTimestamp.toString()] },
+    ];
+
+    return dynamoDB.executeStatement({
+        Statement: statement,
+        Parameters: params,
+    }).promise();
+};
+
 module.exports.handleZoomWebhook = async (event) => {
     if(!event) {
         logger.error(NO_EVENT_RECEIVED);
@@ -71,207 +172,14 @@ module.exports.handleZoomWebhook = async (event) => {
     // At this point the body looks good; has an event and a payload
     logger.info({ payload: body.payload });
 
-    let joined, left, statement, params;
+    let joined;
     switch(body.event) {
         case 'webinar.participant_joined':
-            joined = {
-                webinar: {
-                    MeetingID: body.payload.object.id,
-                    MeetingTitle: body.payload.object.topic,
-                    MeetingStartTime: body.payload.object.start_time,
-                    MeetingDuration: body.payload.object.duration,
-                },
-                participant: {
-                    ParticipantID: body.payload.object.participant.participant_user_id || body.payload.object.participant.user_name,
-                    ParticipantSessionID: body.payload.object.participant.user_id,
-                    ParticipantName: body.payload.object.participant.user_name,
-                    ParticipantEmail: body.payload.object.participant.email,
-                    JoinTime: body.payload.object.participant.join_time,
-                },
-                LastUpdatedAt: DateTime.utc().toISO(),
-                EventTimestamp: body.event_ts,
-            };
-            logger.info({ JOINED: joined });
-
-            statement = `UPDATE ${DB_TABLE}
-                SET MeetingTitle=?
-                SET MeetingStartTime=?
-                SET MeetingDuration=?
-                SET ParticipantSessionIDs=set_add(ParticipantSessionIDs, <<${joined.participant.ParticipantSessionID}>>)
-                SET ParticipantName=?
-                SET ParticipantEmail=?
-                SET JoinTimes=set_add(JoinTimes, <<'${joined.participant.JoinTime}'>>)
-                SET ParticipationCount=ParticipationCount+1
-                SET LastUpdatedAt=?
-                SET EventTimestamps=set_add(EventTimestamps, <<${joined.EventTimestamp}>>)
-                WHERE MeetingID=?
-                AND ParticipantID=?
-                AND NOT contains(EventTimestamps, ?)
-            `;
-            params = [
-                { S: joined.webinar.MeetingTitle },
-                { S: joined.webinar.MeetingStartTime },
-                { N: joined.webinar.MeetingDuration.toString() },
-                { S: joined.participant.ParticipantName },
-                { S: joined.participant.ParticipantEmail },
-                { S: DateTime.utc().toISO() },
-                { N: joined.webinar.MeetingID },
-                { S: joined.participant.ParticipantID },
-                { N: joined.EventTimestamp.toString() },
-            ];
-
-            await dynamoDB.executeStatement({
-                Statement: statement,
-                Parameters: params,
-            }).promise()
-            .catch(err => {
-                // The update failed, which means no record was found - either the participant hasn't been in the meeting yet
-                // OR
-                // This event has already been processed, but took longer than 3000ms and timed out on the client side, so
-                // Zoom is resending the event; we de-dupe the event timestamp per participant/meeting so if this timestamp
-                // was seen before, update will fail; we then will try insert which also should fail.
-                // If the user/meeting DID NOT exist, then the insert will succeed.
-                logger.info('Update failed', { err: err });
-                statement = `INSERT INTO ${DB_TABLE}
-                      VALUE { 'MeetingID':?,
-                              'ParticipantID':?,
-                              'MeetingTitle':?,
-                              'MeetingStartTime':?,
-                              'MeetingDuration':?,
-                              'ParticipantSessionIDs':?,
-                              'ParticipantName':?,
-                              'ParticipantEmail':?,
-                              'JoinTimes':?,
-                              'ParticipationCount':?,
-                              'LastUpdatedAt':?,
-                              'EventTimestamps':?
-                          }
-                `;
-                params = [
-                    { N: joined.webinar.MeetingID },
-                    { S: joined.participant.ParticipantID },
-                    { S: joined.webinar.MeetingTitle },
-                    { S: joined.webinar.MeetingStartTime },
-                    { N: joined.webinar.MeetingDuration.toString() },
-                    { NS: [joined.participant.ParticipantSessionID] },
-                    { S: joined.participant.ParticipantName },
-                    { S: joined.participant.ParticipantEmail },
-                    { SS: [joined.participant.JoinTime] },
-                    { N: '1' },
-                    { S: DateTime.utc().toISO() },
-                    { NS: [joined.EventTimestamp.toString()] },
-                ];
-
-                return dynamoDB.executeStatement({
-                    Statement: statement,
-                    Parameters: params,
-                }).promise();
-            })
-            .catch(err => {
-                // We should only arrive here if this is a duplicate event
-                logger.info('Duplicate event; ignoring', { err: err });
-            });
-
+            joined = true;
             break;
 
         case 'webinar.participant_left':
-            left = {
-                webinar: {
-                    MeetingID: body.payload.object.id,
-                    MeetingTitle: body.payload.object.topic,
-                    MeetingStartTime: body.payload.object.start_time,
-                    MeetingDuration: body.payload.object.duration,
-                },
-                participant: {
-                    ParticipantID: body.payload.object.participant.participant_user_id || body.payload.object.participant.user_name,
-                    ParticipantSessionID: body.payload.object.participant.user_id,
-                    ParticipantName: body.payload.object.participant.user_name,
-                    ParticipantEmail: body.payload.object.participant.email,
-                    LeaveTime: body.payload.object.participant.leave_time,
-                },
-                LastUpdatedAt: DateTime.utc().toISO(),
-                EventTimestamp: +body.event_ts,
-            };
-            logger.info({ LEFT: left });
-            statement = `UPDATE ${DB_TABLE}
-                SET MeetingTitle=?
-                SET MeetingStartTime=?
-                SET MeetingDuration=?
-                SET ParticipantSessionIDs=set_add(ParticipantSessionIDs, <<${left.participant.ParticipantSessionID}>>)
-                SET ParticipantName=?
-                SET ParticipantEmail=?
-                SET LeaveTimes=set_add(LeaveTimes, <<'${left.participant.LeaveTime}'>>)
-                SET ParticipationCount=ParticipationCount-1
-                SET LastUpdatedAt=?
-                SET EventTimestamps=set_add(EventTimestamps, <<${left.EventTimestamp}>>)
-                WHERE MeetingID=?
-                AND ParticipantID=?
-                AND NOT contains(EventTimestamps, ?)
-            `;
-            params = [
-                { S: left.webinar.MeetingTitle },
-                { S: left.webinar.MeetingStartTime },
-                { N: left.webinar.MeetingDuration.toString() },
-                { S: left.participant.ParticipantName },
-                { S: left.participant.ParticipantEmail },
-                { S: DateTime.utc().toISO() },
-                { N: left.webinar.MeetingID },
-                { S: left.participant.ParticipantID },
-                { N: left.EventTimestamp.toString() },
-            ];
-
-            await dynamoDB.executeStatement({
-                Statement: statement,
-                Parameters: params,
-            }).promise()
-            .catch(err => {
-                // The update failed, which means no record was found - either the participant hasn't been in the meeting yet
-                // OR
-                // This event has already been processed, but took longer than 3000ms and timed out on the client side, so
-                // Zoom is resending the event; we de-dupe the event timestamp per participant/meeting so if this timestamp
-                // was seen before, update will fail; we then will try insert which also should fail.
-                // If the user/meeting DID NOT exist, then the insert will succeed.
-                logger.info('Update failed', { err: err });
-                statement = `INSERT INTO ${DB_TABLE}
-                      VALUE { 'MeetingID':?,
-                              'ParticipantID':?,
-                              'MeetingTitle':?,
-                              'MeetingStartTime':?,
-                              'MeetingDuration':?,
-                              'ParticipantSessionIDs':?,
-                              'ParticipantName':?,
-                              'ParticipantEmail':?,
-                              'LeaveTimes':?,
-                              'ParticipationCount':?,
-                              'LastUpdatedAt':?,
-                              'EventTimestamps':?
-                          }
-                `;
-                params = [
-                    { N: left.webinar.MeetingID },
-                    { S: left.participant.ParticipantID },
-                    { S: left.webinar.MeetingTitle },
-                    { S: left.webinar.MeetingStartTime },
-                    { N: left.webinar.MeetingDuration.toString() },
-                    { NS: [left.participant.ParticipantSessionID] },
-                    { S: left.participant.ParticipantName },
-                    { S: left.participant.ParticipantEmail },
-                    { SS: [left.participant.LeaveTime] },
-                    { N: '0' },
-                    { S: DateTime.utc().toISO() },
-                    { NS: [left.EventTimestamp.toString()] },
-                ];
-
-                return dynamoDB.executeStatement({
-                    Statement: statement,
-                    Parameters: params,
-                }).promise();
-            })
-            .catch(err => {
-                // We should only arrive here if this is a duplicate event
-                logger.info('Duplicate event; ignoring', { err: err });
-            });
-
+            joined = false;
             break;
 
         default:
@@ -279,6 +187,26 @@ module.exports.handleZoomWebhook = async (event) => {
 
             return makeHTMLResponse(422, `Unexpected event type: ${body.event}`, acceptEncoding);
     }
+
+    const joinedOrLeft = await makeJoinOrLeaveObject(joined, body.payload, +body.event_ts);
+    logger.info({ [`${joined ? 'JOINED' : 'LEFT' }`]: joinedOrLeft });
+
+    await updateJoinOrLeaveIfExists(joined, joinedOrLeft)
+    .catch(err => {
+        // The update failed, which means no record was found - either the participant hasn't been in the meeting yet
+        // OR
+        // This event has already been processed, but took longer than 3000ms and timed out on the client side, so
+        // Zoom is resending the event; we de-dupe the event timestamp per participant/meeting so if this timestamp
+        // was seen before, update will fail; we then will try insert which also should fail.
+        // If the user/meeting DID NOT exist, then the insert will succeed.
+        logger.info('Update failed', { err: err });
+
+        return insertJoinOrLeaveIfNotExists(joined, joinedOrLeft);
+    })
+    .catch(err => {
+        // We should only arrive here if this is a duplicate event
+        logger.info('Duplicate event; ignoring', { err: err });
+    });
 
     return makeEmptyResponse(204);
 };
