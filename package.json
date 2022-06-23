@@ -15,9 +15,9 @@
   "devDependencies": {
     "@hughescr/eslint-config-default": "^2.8.8",
     "@hughescr/serverless-plugin-git-version-json": "^1.1.0",
-    "aws-sdk": "^2.1145.0",
-    "eslint": "^8.16.0",
-    "serverless": "^3.18.2",
+    "aws-sdk": "^2.1158.0",
+    "eslint": "^8.18.0",
+    "serverless": "^3.19.0",
     "serverless-domain-manager": "^6.0.3",
     "serverless-plugin-log-retention": "^2.0.0",
     "serverless-plugin-zip-symlinks-compress-harder": "^0.11.1"
