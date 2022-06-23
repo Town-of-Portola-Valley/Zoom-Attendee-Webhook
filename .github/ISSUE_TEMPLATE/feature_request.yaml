@@ -1,7 +1,7 @@
 name: Feature request
 description: Suggest an idea for this project
 title: '[FEATURE] <insert short summary here>'
-labels: [Feature, Triage]
+labels: [enhancement, triage]
 
 body:
 

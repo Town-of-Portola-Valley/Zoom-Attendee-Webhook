@@ -34,11 +34,13 @@ html
                         default: h5(class='card-subtitle text-body ms-3') Currently: #{meeting.CurrentCount} participants
                     p.small(class='card-text lh-1 fw-lighter ms-3') Scheduled end:
                         +time(meeting.MeetingStartTime.plus(meeting.MeetingDuration))
-                else
+                else if meeting.ParticipantCount
                     h5(class='card-subtitle text-danger ms-3') Ended:
                         +time(participants[1].participants[0].LeaveTime)
                     p.small(class='card-text lh-1 fw-lighter ms-3') Started:
                         +time(meeting.MeetingStartTime)
+                else
+                    h5(class='card-subtitle text-danger ms-3') There is no record of this meeting
                 div(class='list-group-flush')
                     each participantGroup in participants
                         +participantList(participantGroup.title, participantGroup.participants)

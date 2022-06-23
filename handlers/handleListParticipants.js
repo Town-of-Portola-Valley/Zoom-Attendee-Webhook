@@ -59,13 +59,21 @@ module.exports.handleListParticipants = async (event) => {
         nextToken = raw.nextToken;
     } while(nextToken);
 
-    const MeetingTitle = items[0].MeetingTitle.S;
-    const MeetingID = items[0].MeetingID.N;
-    const MeetingStartTime = DateTime.fromISO(items[0].MeetingStartTime.S);
-    const MeetingDuration = Duration.fromObject({ minutes: items[0].MeetingDuration.N });
-    const ParticipantCount = items.length;
-
-    const results = _(items)
+    const { MeetingTitle, MeetingID, MeetingStartTime, MeetingDuration, ParticipantCount, results } =
+        (items.length === 0) ? {
+            MeetingTitle : 'This meeting does not exist',
+            MeetingID : event.pathParameters.meeting_id,
+            MeetingStartTime : DateTime.now(),
+            MeetingDuration : Duration.fromObject({ minutes: 0 }),
+            ParticipantCount : 0,
+            results: {},
+        } : {
+            MeetingTitle : items[0].MeetingTitle.S,
+            MeetingID : items[0].MeetingID.N,
+            MeetingStartTime : DateTime.fromISO(items[0].MeetingStartTime.S),
+            MeetingDuration : Duration.fromObject({ minutes: items[0].MeetingDuration.N }),
+            ParticipantCount : items.length,
+            results: _(items)
                     .map(AWS.DynamoDB.Converter.unmarshall)
                     .map(i => ({
                             ...i,
@@ -76,7 +84,9 @@ module.exports.handleListParticipants = async (event) => {
                             ParticipationCount: i.ParticipationCount ? 1 : 0,
                     }))
                     .groupBy('ParticipationCount')
-                    .value();
+                    .value(),
+        };
+
     logger.info({ results: results });
 
     const response = listParticipantsTemplate({
@@ -90,7 +100,7 @@ module.exports.handleListParticipants = async (event) => {
             ParticipantCount,
             CurrentCount: results['1'] ? results['1'].length : 0,
         },
-        participants: [
+        participants: items.length ? [
             {
                 title: 'Online',
                 participants: _(results['1']).sortBy('JoinTime').reverse().value(),
@@ -98,6 +108,11 @@ module.exports.handleListParticipants = async (event) => {
             {
                 title: 'Left the meeting',
                 participants: _(results['0']).sortBy('LeaveTime').reverse().value(),
+            }
+        ] : [
+            {
+                title: 'There is no record of any participant',
+                participants: [],
             }
         ],
     });
