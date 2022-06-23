@@ -188,10 +188,10 @@ module.exports.handleZoomWebhook = async (event) => {
             return makeHTMLResponse(422, `Unexpected event type: ${body.event}`, acceptEncoding);
     }
 
-    const joinedOrLeft = await makeJoinOrLeaveObject(true, body.payload, +body.event_ts);
+    const joinedOrLeft = await makeJoinOrLeaveObject(joined, body.payload, +body.event_ts);
     logger.info({ [`${joined ? 'JOINED' : 'LEFT' }`]: joinedOrLeft });
 
-    updateJoinOrLeaveIfExists(joined, joinedOrLeft)
+    await updateJoinOrLeaveIfExists(joined, joinedOrLeft)
     .catch(err => {
         // The update failed, which means no record was found - either the participant hasn't been in the meeting yet
         // OR
