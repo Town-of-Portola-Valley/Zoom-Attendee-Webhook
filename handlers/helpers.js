@@ -70,7 +70,7 @@ module.exports.makeHTMLResponse = async (statusCode, body, acceptEncoding = '') 
         convertedBody = (await gzip(body)).toString('base64');
         maybeZipped = { 'Content-Encoding': 'gzip' };
         base64Encoded = true;
-    } else if(/\deflate\b/.test(acceptEncoding)) {
+    } else if(/\bdeflate\b/.test(acceptEncoding)) {
         convertedBody = (await deflate(body)).toString('base64');
         maybeZipped = { 'Content-Encoding': 'deflate' };
         base64Encoded = true;
