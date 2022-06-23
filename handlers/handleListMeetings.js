@@ -38,7 +38,7 @@ module.exports.handleListMeetings = async (event) => {
 
     const acceptEncoding = event.headers && event.headers[ACCEPT_ENCODING];
 
-    const numDays = event.queryStringParameters && event.queryStringParameters.numDays || 7;
+    const numDays = event.queryStringParameters && event.queryStringParameters.numDays && parseInt(event.queryStringParameters.numDays) || 7;
 
     const statement = `SELECT MeetingID,
                               MeetingTitle,
