@@ -6,6 +6,11 @@ const { dynamoDB, makeHTMLResponse, INTERNAL_SERVER_ERROR, AUTHORIZATION_CHECK }
 const foo = require('../index');
 
 describe('webhook', () => {
+    beforeEach(() => {
+      jest.restoreAllMocks();
+      jest.clearAllMocks();
+    });
+
     describe('basic data checks', () => {
         it('should detect missing events', async () => {
             expect.assertions(1);
@@ -132,29 +137,30 @@ describe('webhook', () => {
 
     describe('join', () => {
         it('should succeed when first person joins', async () => {
-            expect.assertions(5);
+            expect.assertions(6);
 
             jest.spyOn(dynamoDB, 'executeStatement')
-                .mockReturnValueOnce({ promise: async () => Promise.reject('Does not exist') })
-                .mockReturnValueOnce({ promise: async () => Promise.resolve('Insert succeeds though') });
+                .mockReturnValueOnce({ promise: async () => Promise.reject('Does not exist') }) // Update fails
+                .mockReturnValueOnce({ promise: async () => Promise.resolve('Insert succeeds though') }); // Insert succeeds
 
             const event = require('./fixtures/participant-joined.json');
             event.body = JSON.parse(event.body);
             event.body.event_ts = Date.now();
             event.body = JSON.stringify(event.body);
-            const result = foo.handleZoomWebhook(event);
+            const result = await foo.handleZoomWebhook(event);
 
-            await expect(result).resolves.toStrictEqual(expect.objectContaining({
+            expect(result).toStrictEqual(expect.objectContaining({
                 headers: expect.objectContaining({
                     'X-Git-Version': expect.stringContaining('gitVersion'),
                 }),
                 statusCode: 204,
             }));
+            expect(dynamoDB.executeStatement).toHaveBeenCalledTimes(2);
             // We should have attempted to increment ParticipantCount
             expect(dynamoDB.executeStatement).toHaveBeenNthCalledWith(1, expect.objectContaining({
                 Statement: expect.stringContaining('SET ParticipationCount=ParticipationCount + 1'),
             }));
-            // We should have attempted to increment ParticipantCount
+            // We should NOT have attempted to decrement ParticipantCount
             expect(dynamoDB.executeStatement).toHaveBeenNthCalledWith(1, expect.objectContaining({
                 Statement: expect.not.stringContaining('SET ParticipationCount=ParticipationCount - 1'),
             }));
@@ -169,9 +175,307 @@ describe('webhook', () => {
                 Statement: expect.stringContaining('INSERT'),
             }));
         });
+
+        it('should succeed when person joins who is already known', async () => {
+            expect.assertions(5);
+
+            jest.spyOn(dynamoDB, 'executeStatement')
+                .mockReturnValueOnce({ promise: async () => Promise.resolve('Already exists') }) // Update succeeds
+                .mockReturnValueOnce({ promise: async () => Promise.reject('Insert would fail') }); // Insert would fail cos exists
+
+            const event = require('./fixtures/participant-joined.json');
+            event.body = JSON.parse(event.body);
+            event.body.event_ts = Date.now();
+            event.body = JSON.stringify(event.body);
+            const result = await foo.handleZoomWebhook(event);
+
+            expect(result).toStrictEqual(expect.objectContaining({
+                headers: expect.objectContaining({
+                    'X-Git-Version': expect.stringContaining('gitVersion'),
+                }),
+                statusCode: 204,
+            }));
+            expect(dynamoDB.executeStatement).toHaveBeenCalledTimes(1);
+            // We should have attempted to increment ParticipantCount
+            expect(dynamoDB.executeStatement).toHaveBeenNthCalledWith(1, expect.objectContaining({
+                Statement: expect.stringContaining('SET ParticipationCount=ParticipationCount + 1'),
+            }));
+            // We should NOT have attempted to decrement ParticipantCount
+            expect(dynamoDB.executeStatement).toHaveBeenNthCalledWith(1, expect.objectContaining({
+                Statement: expect.not.stringContaining('SET ParticipationCount=ParticipationCount - 1'),
+            }));
+            // We should NOT be inserting
+            expect(dynamoDB.executeStatement).not.toHaveBeenLastCalledWith(expect.objectContaining({
+                Statement: expect.stringContaining('INSERT'),
+            }));
+        });
+
+        it('should succeed when first person joins with no participant_user_id', async () => {
+            expect.assertions(6);
+
+            jest.spyOn(dynamoDB, 'executeStatement')
+                .mockReturnValueOnce({ promise: async () => Promise.reject('Does not exist') }) // Update fails
+                .mockReturnValueOnce({ promise: async () => Promise.resolve('Insert succeeds though') }); // Insert succeeds
+
+            const event = require('./fixtures/participant-joined-no-participant_user_id.json');
+            event.body = JSON.parse(event.body);
+            event.body.event_ts = Date.now();
+            event.body = JSON.stringify(event.body);
+            const result = await foo.handleZoomWebhook(event);
+
+            expect(result).toStrictEqual(expect.objectContaining({
+                headers: expect.objectContaining({
+                    'X-Git-Version': expect.stringContaining('gitVersion'),
+                }),
+                statusCode: 204,
+            }));
+            expect(dynamoDB.executeStatement).toHaveBeenCalledTimes(2);
+            // We should have attempted to increment ParticipantCount
+            expect(dynamoDB.executeStatement).toHaveBeenNthCalledWith(1, expect.objectContaining({
+                Statement: expect.stringContaining('SET ParticipationCount=ParticipationCount + 1'),
+            }));
+            // We should NOT have attempted to decrement ParticipantCount
+            expect(dynamoDB.executeStatement).toHaveBeenNthCalledWith(1, expect.objectContaining({
+                Statement: expect.not.stringContaining('SET ParticipationCount=ParticipationCount - 1'),
+            }));
+            // We should be inserting with ParticipantCount = 1
+            expect(dynamoDB.executeStatement).toHaveBeenLastCalledWith(expect.objectContaining({
+                Parameters: expect.arrayContaining([{ N: '1' }]),
+                Statement: expect.stringContaining('INSERT'),
+            }));
+            // We should NOT be inserting with ParticipantCount = 0
+            expect(dynamoDB.executeStatement).toHaveBeenLastCalledWith(expect.objectContaining({
+                Parameters: expect.not.arrayContaining([{ N: '0' }]),
+                Statement: expect.stringContaining('INSERT'),
+            }));
+        });
+
+        it('should succeed when person joins who is already known with no participant_user_id', async () => {
+            expect.assertions(5);
+
+            jest.spyOn(dynamoDB, 'executeStatement')
+                .mockReturnValueOnce({ promise: async () => Promise.resolve('Already exists') }) // Update succeeds
+                .mockReturnValueOnce({ promise: async () => Promise.reject('Insert would fail') }); // Insert would fail cos exists
+
+            const event = require('./fixtures/participant-joined-no-participant_user_id.json');
+            event.body = JSON.parse(event.body);
+            event.body.event_ts = Date.now();
+            event.body = JSON.stringify(event.body);
+            const result = await foo.handleZoomWebhook(event);
+
+            expect(result).toStrictEqual(expect.objectContaining({
+                headers: expect.objectContaining({
+                    'X-Git-Version': expect.stringContaining('gitVersion'),
+                }),
+                statusCode: 204,
+            }));
+            expect(dynamoDB.executeStatement).toHaveBeenCalledTimes(1);
+            // We should have attempted to increment ParticipantCount
+            expect(dynamoDB.executeStatement).toHaveBeenNthCalledWith(1, expect.objectContaining({
+                Statement: expect.stringContaining('SET ParticipationCount=ParticipationCount + 1'),
+            }));
+            // We should NOT have attempted to decrement ParticipantCount
+            expect(dynamoDB.executeStatement).toHaveBeenNthCalledWith(1, expect.objectContaining({
+                Statement: expect.not.stringContaining('SET ParticipationCount=ParticipationCount - 1'),
+            }));
+            // We should NOT be inserting
+            expect(dynamoDB.executeStatement).not.toHaveBeenLastCalledWith(expect.objectContaining({
+                Statement: expect.stringContaining('INSERT'),
+            }));
+        });
+
+        it('duplicate event should do nothing', async () => {
+            expect.assertions(2);
+
+            jest.spyOn(dynamoDB, 'executeStatement')
+                .mockReturnValueOnce({ promise: async () => Promise.reject('Already exists') }) // Update fails cos event_timestamp
+                .mockReturnValueOnce({ promise: async () => Promise.reject('Insert fails') }); // Insert fails also cos unique key
+
+            const event = require('./fixtures/participant-joined.json');
+            event.body = JSON.parse(event.body);
+            event.body.event_ts = Date.now();
+            event.body = JSON.stringify(event.body);
+            const result = await foo.handleZoomWebhook(event);
+
+            expect(result).toStrictEqual(expect.objectContaining({
+                headers: expect.objectContaining({
+                    'X-Git-Version': expect.stringContaining('gitVersion'),
+                }),
+                statusCode: 204,
+            }));
+            expect(dynamoDB.executeStatement).toHaveBeenCalledTimes(2);
+        });
     });
 
     describe('leave', () => {
-        it.todo('nothing yet');
+        it('should succeed when unknown person leaves', async () => {
+            expect.assertions(6);
+
+            jest.spyOn(dynamoDB, 'executeStatement')
+                .mockReturnValueOnce({ promise: async () => Promise.reject('Does not exist') }) // Update fails
+                .mockReturnValueOnce({ promise: async () => Promise.resolve('Insert succeeds though') }); // Insert succeeds
+
+            const event = require('./fixtures/participant-left.json');
+            event.body = JSON.parse(event.body);
+            event.body.event_ts = Date.now();
+            event.body = JSON.stringify(event.body);
+            const result = await foo.handleZoomWebhook(event);
+
+            expect(result).toStrictEqual(expect.objectContaining({
+                headers: expect.objectContaining({
+                    'X-Git-Version': expect.stringContaining('gitVersion'),
+                }),
+                statusCode: 204,
+            }));
+            expect(dynamoDB.executeStatement).toHaveBeenCalledTimes(2);
+            // We should have attempted to decrement ParticipantCount
+            expect(dynamoDB.executeStatement).toHaveBeenNthCalledWith(1, expect.objectContaining({
+                Statement: expect.stringContaining('SET ParticipationCount=ParticipationCount - 1'),
+            }));
+            // We should NOT have attempted to increment ParticipantCount
+            expect(dynamoDB.executeStatement).toHaveBeenNthCalledWith(1, expect.objectContaining({
+                Statement: expect.not.stringContaining('SET ParticipationCount=ParticipationCount + 1'),
+            }));
+            // We should be inserting with ParticipantCount = 0
+            expect(dynamoDB.executeStatement).toHaveBeenLastCalledWith(expect.objectContaining({
+                Parameters: expect.arrayContaining([{ N: '0' }]),
+                Statement: expect.stringContaining('INSERT'),
+            }));
+            // We should NOT be inserting with ParticipantCount = 1
+            expect(dynamoDB.executeStatement).toHaveBeenLastCalledWith(expect.objectContaining({
+                Parameters: expect.not.arrayContaining([{ N: '1' }]),
+                Statement: expect.stringContaining('INSERT'),
+            }));
+        });
+
+        it('should succeed when person leaves who is already known', async () => {
+            expect.assertions(5);
+
+            jest.spyOn(dynamoDB, 'executeStatement')
+                .mockReturnValueOnce({ promise: async () => Promise.resolve('Already exists') }) // Update succeeds
+                .mockReturnValueOnce({ promise: async () => Promise.reject('Insert would fail') }); // Insert would fail cos exists
+
+            const event = require('./fixtures/participant-left.json');
+            event.body = JSON.parse(event.body);
+            event.body.event_ts = Date.now();
+            event.body = JSON.stringify(event.body);
+            const result = await foo.handleZoomWebhook(event);
+
+            expect(result).toStrictEqual(expect.objectContaining({
+                headers: expect.objectContaining({
+                    'X-Git-Version': expect.stringContaining('gitVersion'),
+                }),
+                statusCode: 204,
+            }));
+            expect(dynamoDB.executeStatement).toHaveBeenCalledTimes(1);
+            // We should have attempted to decrement ParticipantCount
+            expect(dynamoDB.executeStatement).toHaveBeenNthCalledWith(1, expect.objectContaining({
+                Statement: expect.stringContaining('SET ParticipationCount=ParticipationCount - 1'),
+            }));
+            // We should NOT have attempted to increment ParticipantCount
+            expect(dynamoDB.executeStatement).toHaveBeenNthCalledWith(1, expect.objectContaining({
+                Statement: expect.not.stringContaining('SET ParticipationCount=ParticipationCount + 1'),
+            }));
+            // We should NOT be inserting
+            expect(dynamoDB.executeStatement).not.toHaveBeenLastCalledWith(expect.objectContaining({
+                Statement: expect.stringContaining('INSERT'),
+            }));
+        });
+
+        it('should succeed when unknown person leaves with no participant_user_id', async () => {
+            expect.assertions(6);
+
+            jest.spyOn(dynamoDB, 'executeStatement')
+                .mockReturnValueOnce({ promise: async () => Promise.reject('Does not exist') }) // Update fails
+                .mockReturnValueOnce({ promise: async () => Promise.resolve('Insert succeeds though') }); // Insert succeeds
+
+            const event = require('./fixtures/participant-left-no-participant_user_id.json');
+            event.body = JSON.parse(event.body);
+            event.body.event_ts = Date.now();
+            event.body = JSON.stringify(event.body);
+            const result = await foo.handleZoomWebhook(event);
+
+            expect(result).toStrictEqual(expect.objectContaining({
+                headers: expect.objectContaining({
+                    'X-Git-Version': expect.stringContaining('gitVersion'),
+                }),
+                statusCode: 204,
+            }));
+            expect(dynamoDB.executeStatement).toHaveBeenCalledTimes(2);
+            // We should have attempted to decrement ParticipantCount
+            expect(dynamoDB.executeStatement).toHaveBeenNthCalledWith(1, expect.objectContaining({
+                Statement: expect.stringContaining('SET ParticipationCount=ParticipationCount - 1'),
+            }));
+            // We should NOT have attempted to increment ParticipantCount
+            expect(dynamoDB.executeStatement).toHaveBeenNthCalledWith(1, expect.objectContaining({
+                Statement: expect.not.stringContaining('SET ParticipationCount=ParticipationCount + 1'),
+            }));
+            // We should be inserting with ParticipantCount = 0
+            expect(dynamoDB.executeStatement).toHaveBeenLastCalledWith(expect.objectContaining({
+                Parameters: expect.arrayContaining([{ N: '0' }]),
+                Statement: expect.stringContaining('INSERT'),
+            }));
+            // We should NOT be inserting with ParticipantCount = 1
+            expect(dynamoDB.executeStatement).toHaveBeenLastCalledWith(expect.objectContaining({
+                Parameters: expect.not.arrayContaining([{ N: '1' }]),
+                Statement: expect.stringContaining('INSERT'),
+            }));
+        });
+
+        it('should succeed when person leaves who is already known with no participant_user_id', async () => {
+            expect.assertions(5);
+
+            jest.spyOn(dynamoDB, 'executeStatement')
+                .mockReturnValueOnce({ promise: async () => Promise.resolve('Already exists') }) // Update succeeds
+                .mockReturnValueOnce({ promise: async () => Promise.reject('Insert would fail') }); // Insert would fail cos exists
+
+            const event = require('./fixtures/participant-left-no-participant_user_id.json');
+            event.body = JSON.parse(event.body);
+            event.body.event_ts = Date.now();
+            event.body = JSON.stringify(event.body);
+            const result = await foo.handleZoomWebhook(event);
+
+            expect(result).toStrictEqual(expect.objectContaining({
+                headers: expect.objectContaining({
+                    'X-Git-Version': expect.stringContaining('gitVersion'),
+                }),
+                statusCode: 204,
+            }));
+            expect(dynamoDB.executeStatement).toHaveBeenCalledTimes(1);
+            // We should have attempted to decrement ParticipantCount
+            expect(dynamoDB.executeStatement).toHaveBeenNthCalledWith(1, expect.objectContaining({
+                Statement: expect.stringContaining('SET ParticipationCount=ParticipationCount - 1'),
+            }));
+            // We should NOT have attempted to increment ParticipantCount
+            expect(dynamoDB.executeStatement).toHaveBeenNthCalledWith(1, expect.objectContaining({
+                Statement: expect.not.stringContaining('SET ParticipationCount=ParticipationCount + 1'),
+            }));
+            // We should NOT be inserting
+            expect(dynamoDB.executeStatement).not.toHaveBeenLastCalledWith(expect.objectContaining({
+                Statement: expect.stringContaining('INSERT'),
+            }));
+        });
+
+        it('duplicate event should do nothing', async () => {
+            expect.assertions(2);
+
+            jest.spyOn(dynamoDB, 'executeStatement')
+                .mockReturnValueOnce({ promise: async () => Promise.reject('Already exists') }) // Update fails cos event_timestamp
+                .mockReturnValueOnce({ promise: async () => Promise.reject('Insert fails') }); // Insert fails also cos unique key
+
+            const event = require('./fixtures/participant-left.json');
+            event.body = JSON.parse(event.body);
+            event.body.event_ts = Date.now();
+            event.body = JSON.stringify(event.body);
+            const result = await foo.handleZoomWebhook(event);
+
+            expect(result).toStrictEqual(expect.objectContaining({
+                headers: expect.objectContaining({
+                    'X-Git-Version': expect.stringContaining('gitVersion'),
+                }),
+                statusCode: 204,
+            }));
+            expect(dynamoDB.executeStatement).toHaveBeenCalledTimes(2);
+        });
     });
 });

@@ -1,0 +1,6 @@
+{
+    "headers": {
+        "authorization": "BOGUS_TOKEN"
+    },
+    "body": "{\"event\":\"webinar.participant_left\",\"payload\":{\"account_id\":\"fsUi-5tFSEyoLsfgXqArZw\",\"object\":{\"uuid\":\"EDMw37SSSqWOfmHldC/Mww==\",\"participant\":{\"leave_time\":\"2022-06-23T04:43:43Z\",\"user_id\":\"16847872\",\"user_name\":\"Leigh Prince\",\"registrant_id\":\"KHHKGbuZSQKA6KDKd-ya1w\",\"id\":\"KHHKGbuZSQKA6KDKd-ya1w\",\"leave_reason\":\"left the meeting. Reason : left the meeting\",\"email\":\"lfp@jsmf.com\"},\"id\":\"81694235121\",\"type\":5,\"topic\":\"Town of Portola Valley - Town Council Regular Meeting\",\"host_id\":\"BpF9MwguQa2FeuvkU-bHdw\",\"duration\":300,\"start_time\":\"2022-06-23T01:33:07Z\",\"timezone\":\"America/Los_Angeles\"}}}"
+}
