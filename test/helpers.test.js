@@ -1,10 +1,9 @@
 'use strict';
 
 const _ = require('lodash');
-const { dynamoDB, makeEmptyResponse, makeHTMLResponse, INTERNAL_SERVER_ERROR } = require('../handlers/helpers');
-const foo = require('../index');
+const { makeEmptyResponse, makeHTMLResponse } = require('../handlers/helpers');
 
-// jest.mock('../handlers/helpers.js');
+const CONTENT_ENCODING = 'Content-Encoding';
 
 describe('helpers', () => {
     it('empty response', async () => {
@@ -22,7 +21,7 @@ describe('helpers', () => {
             const result = await makeHTMLResponse(12345, 'TEST');
 
             expect(result).toHaveProperty('headers');
-            expect(result.headers).not.toHaveProperty('Content-Encoding');
+            expect(result.headers).not.toHaveProperty(CONTENT_ENCODING);
             expect(_.keys(result.headers)).toHaveLength(9);
             expect(result).toHaveProperty('statusCode', 12345);
             expect(result).toHaveProperty('body', 'TEST');
@@ -34,7 +33,7 @@ describe('helpers', () => {
             const result = await makeHTMLResponse(12345, 'TEST', 'br');
 
             expect(result).toHaveProperty('headers');
-            expect(result.headers).toHaveProperty('Content-Encoding', 'br');
+            expect(result.headers).toHaveProperty(CONTENT_ENCODING, 'br');
             expect(_.keys(result.headers)).toHaveLength(10);
             expect(result).toHaveProperty('statusCode', 12345);
             expect(result).toHaveProperty('body');
@@ -47,7 +46,7 @@ describe('helpers', () => {
             const result = await makeHTMLResponse(12345, 'TEST', 'deflate');
 
             expect(result).toHaveProperty('headers');
-            expect(result.headers).toHaveProperty('Content-Encoding', 'deflate');
+            expect(result.headers).toHaveProperty(CONTENT_ENCODING, 'deflate');
             expect(_.keys(result.headers)).toHaveLength(10);
             expect(result).toHaveProperty('statusCode', 12345);
             expect(result).toHaveProperty('body');
@@ -60,7 +59,7 @@ describe('helpers', () => {
             const result = await makeHTMLResponse(12345, 'TEST', 'gzip');
 
             expect(result).toHaveProperty('headers');
-            expect(result.headers).toHaveProperty('Content-Encoding', 'gzip');
+            expect(result.headers).toHaveProperty(CONTENT_ENCODING, 'gzip');
             expect(_.keys(result.headers)).toHaveLength(10);
             expect(result).toHaveProperty('statusCode', 12345);
             expect(result).toHaveProperty('body');
@@ -73,38 +72,11 @@ describe('helpers', () => {
             const result = await makeHTMLResponse(12345, 'TEST', 'rando');
 
             expect(result).toHaveProperty('headers');
-            expect(result.headers).not.toHaveProperty('Content-Encoding');
+            expect(result.headers).not.toHaveProperty(CONTENT_ENCODING);
             expect(_.keys(result.headers)).toHaveLength(9);
             expect(result).toHaveProperty('statusCode', 12345);
             expect(result).toHaveProperty('body', 'TEST');
             expect(result).toHaveProperty('isBase64Encoded', false);
-        });
-    });
-});
-
-describe('webhook', () => {
-    describe('basic tests', () => {
-        it('should detect missing events', async () => {
-            expect.assertions(1);
-
-            const result = foo.handleZoomWebhook();
-            const expected = await makeHTMLResponse(500, INTERNAL_SERVER_ERROR);
-
-            await expect(result).resolves.toEqual(expected);
-        });
-
-        it('should respond correctly to keep-alive pings', async () => {
-            expect.assertions(1);
-
-            const event = require('./fixtures/keep-alive.json');
-            const result = foo.handleZoomWebhook(event);
-
-            await expect(result).resolves.toEqual(expect.objectContaining({
-                headers: expect.objectContaining({
-                    'X-Git-Version': expect.stringContaining('gitVersion'),
-                }),
-                statusCode: expect.any(Number),
-            }));
         });
     });
 });
