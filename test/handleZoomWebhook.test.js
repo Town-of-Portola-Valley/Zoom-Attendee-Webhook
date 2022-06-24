@@ -132,7 +132,7 @@ describe('webhook', () => {
 
     describe('join', () => {
         it('should succeed when first person joins', async () => {
-            expect.assertions(3);
+            expect.assertions(5);
 
             jest.spyOn(dynamoDB, 'executeStatement')
                 .mockReturnValueOnce({ promise: async () => Promise.reject('Does not exist') })
@@ -149,6 +149,14 @@ describe('webhook', () => {
                     'X-Git-Version': expect.stringContaining('gitVersion'),
                 }),
                 statusCode: 204,
+            }));
+            // We should have attempted to increment ParticipantCount
+            expect(dynamoDB.executeStatement).toHaveBeenNthCalledWith(1, expect.objectContaining({
+                Statement: expect.stringContaining('SET ParticipationCount=ParticipationCount + 1'),
+            }));
+            // We should have attempted to increment ParticipantCount
+            expect(dynamoDB.executeStatement).toHaveBeenNthCalledWith(1, expect.objectContaining({
+                Statement: expect.not.stringContaining('SET ParticipationCount=ParticipationCount - 1'),
             }));
             // We should be inserting with ParticipantCount = 1
             expect(dynamoDB.executeStatement).toHaveBeenLastCalledWith(expect.objectContaining({
