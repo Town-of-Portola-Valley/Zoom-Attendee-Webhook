@@ -3,7 +3,7 @@
     [
         {
             "path": ".",
-            "folder_exclude_patterns": ["node_modules",".serverless"],
+            "folder_exclude_patterns": ["node_modules",".serverless", "coverage", "reports"],
             "file_exclude_patterns": ["yarn.lock"]
         }
     ]
