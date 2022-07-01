@@ -172,7 +172,7 @@ module.exports.handleListParticipants = async (event) => {
     const sortedOnline = _(results['1']).sortBy('JoinTime').reverse().value();
     const sortedOffline = _(results['0']).sortBy('LeaveTime').reverse().value();
 
-    const MeetingEndTime = sortedOnline.length ? undefined : _.first(sortedOffline).LeaveTime;
+    const MeetingEndTime = sortedOnline.length ? undefined : _.first(sortedOffline) && _.first(sortedOffline).LeaveTime || DateTime.now();
 
     const onlineParticipants = await Promise.all(_.map(sortedOnline, async (p) => {
         p.progressData = await participantProgressData(p, MeetingStartTime, MeetingDuration, MeetingEndTime);
