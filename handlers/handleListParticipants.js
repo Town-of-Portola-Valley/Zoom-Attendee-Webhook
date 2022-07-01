@@ -157,8 +157,8 @@ module.exports.handleListParticipants = async (event) => {
                             ...i,
                             MeetingStartTime: DateTime.fromISO(i.MeetingStartTime),
                             MeetingDuration: Duration.fromObject({ minutes: i.MeetingDuration }),
-                            JoinTimes: _.map(i.JoinTimes.values, DateTime.fromISO),
-                            LeaveTimes: _.map(i.LeaveTimes.values, DateTime.fromISO),
+                            JoinTimes: _.map(i.JoinTimes && i.JoinTimes.values || [], DateTime.fromISO),
+                            LeaveTimes: _.map(i.LeaveTimes && i.LeaveTimes.values || [], DateTime.fromISO),
                             JoinTime: i.ParticipationCount ? _(i.JoinTimes.values).sortBy().map(DateTime.fromISO).last() : DateTime.now(), // Find the latest join time
                             LeaveTime: i.ParticipationCount ? DateTime.now() : _(i.LeaveTimes.values).sortBy().map(DateTime.fromISO).last(),
                             ParticipationCount: i.ParticipationCount ? 1 : 0,
