@@ -148,7 +148,7 @@ module.exports.handleListParticipants = async (event) => {
         } : {
             MeetingTitle : items[0].MeetingTitle.S,
             MeetingID : items[0].MeetingID.N,
-            MeetingStartTime : DateTime.fromISO(items[0].MeetingStartTime.S),
+            MeetingStartTime : DateTime.fromISO(_(items).sortBy('MeetingStartTime.S').first().MeetingStartTime.S),
             MeetingDuration : Duration.fromObject({ minutes: items[0].MeetingDuration.N }),
             ParticipantCount : items.length,
             results: _(items)
