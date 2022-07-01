@@ -1,11 +1,24 @@
 include time
-mixin participant(p)
+
+mixin timeline(data, endTime)
+    figure(class='mb-0')
+        div(class='progress')
+            each datum in data
+                if datum.present
+                    div(class='progress-bar text-bg-success' role='progressbar' style=`width:${datum.percent}%` aria-valuenow=datum.percent aria-minvalue='0' aria-maxvalue='100' data-bs-toggle='tooltip' title=datum.tooltip)
+                else
+                    div(class='progress-bar text-bg-secondary' role='progressbar' style=`width:${datum.percent}%;--bs-bg-opacity:0.5` aria-valuenow=datum.percent aria-minvalue='0' aria-maxvalue='100')
+            if endTime
+                div(class='progress-bar text-bg-dark' role='progressbar' style='width:1%' aria-valuenow='1' aria-valuemin='0' aria-valuemax='100' data-bs-toggle='tooltip' title=`Ended: ${endTime.toLocaleString(DateTime.TIME_SIMPLENOZERO)}` data-bs-placement='right')
+            else
+                span ⋯
+
+mixin participant(p, endTime)
     div.card(class='h-100')
         div(class='card-body')
             h5(class='card-title') #{p.ParticipantName}
-            //- if p.ParticipantEmail
-            //-     h6(class='fw-light card-subtitle') #{p.ParticipantEmail}
-            p(class='small fw-lighter card-text text-wrap')
+            +timeline(p.progressData, endTime)
+            p(class='small fw-lighter card-subtitle text-wrap mt-2 mb-0')
                 if p.ParticipationCount
                     | Joined:
                     +time(p.JoinTime)

@@ -1,0 +1,6 @@
+{
+    "headers": {
+        "authorization": "BOGUS_TOKEN"
+    },
+    "body": "{\"event\":\"webinar.participant_left\",\"payload\":{\"account_id\":\"fsUi-5tFSEyoLsfgXqArZw\",\"object\":{\"uuid\":\"2I0OeCYVRfyGRkW6XbaI8w==\",\"participant\":{\"leave_time\":\"2022-06-23T17:20:42Z\",\"user_id\":\"16778240\",\"user_name\":\"Town of Portola Valley\",\"registrant_id\":\"BpF9MwguQa2FeuvkU-bHdw\",\"participant_user_id\":\"BpF9MwguQa2FeuvkU-bHdw\",\"id\":\"BpF9MwguQa2FeuvkU-bHdw\",\"leave_reason\":\"left the meeting. Reason : left the meeting\",\"email\":\"webmaster@portolavalley.net\"},\"id\":\"88429866239\",\"type\":5,\"topic\":\"Test Webinar\",\"host_id\":\"BpF9MwguQa2FeuvkU-bHdw\",\"duration\":60,\"start_time\":\"2022-06-23T17:13:46Z\",\"timezone\":\"America/Los_Angeles\"}}}"
+}

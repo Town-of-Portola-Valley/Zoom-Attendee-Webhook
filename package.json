@@ -9,18 +9,24 @@
   "author": "Craig R. Hughes <craig.git@rungie.com>",
   "license": "Apache-2.0",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "jest",
     "postversion": "git commit -m \"Bump package version to $npm_package_version\" package.json; git flow release start $npm_package_version; git flow release finish -m $npm_package_version $npm_package_version; git checkout develop; git merge master"
   },
   "devDependencies": {
     "@hughescr/eslint-config-default": "^2.8.8",
     "@hughescr/serverless-plugin-git-version-json": "^1.1.0",
+    "@stryker-mutator/core": "^6.0.2",
+    "@stryker-mutator/jest-runner": "^6.0.2",
     "aws-sdk": "^2.1161.0",
     "eslint": "^8.18.0",
+    "eslint-plugin-jest": "^26.5.3",
+    "jest": "^28.1.1",
+    "rewire": "^6.0.0",
     "serverless": "^3.19.0",
     "serverless-domain-manager": "^6.0.3",
     "serverless-plugin-log-retention": "^2.0.0",
-    "serverless-plugin-zip-symlinks-compress-harder": "^0.11.1"
+    "serverless-plugin-zip-symlinks-compress-harder": "^0.11.1",
+    "stryker-cli": "^1.0.2"
   },
   "dependencies": {
     "@hughescr/logger": "^2.5.0",

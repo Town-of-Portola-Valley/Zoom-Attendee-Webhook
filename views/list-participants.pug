@@ -3,14 +3,14 @@ include mixins/standard-head
 include mixins/standard-footer
 include mixins/bootstrap-stylesheet
 
-mixin participantList(type, participants)
+mixin participantList(type, participants, endTime)
     div.card(class='list-group-item h-100 w-100')
         h2(class='card-header') #{type}
         if participants.length
             div(class='row row-cols-1 row-cols-md-2 row-cols-lg-4 row-cols-xl-6 g-md-1')
                 each participant in participants
                     div.col
-                        +participant(participant)
+                        +participant(participant, endTime)
         else
             div(class='card-body') &mdash; None &mdash;
 
@@ -36,12 +36,12 @@ html
                         +time(meeting.MeetingStartTime.plus(meeting.MeetingDuration))
                 else if meeting.ParticipantCount
                     h5(class='card-subtitle text-danger ms-3') Ended:
-                        +time(participants[1].participants[0].LeaveTime)
+                        +time(meeting.MeetingEndTime)
                     p.small(class='card-text lh-1 fw-lighter ms-3') Started:
                         +time(meeting.MeetingStartTime)
                 else
                     h5(class='card-subtitle text-danger ms-3') There is no record of this meeting
                 div(class='list-group-flush')
                     each participantGroup in participants
-                        +participantList(participantGroup.title, participantGroup.participants)
+                        +participantList(participantGroup.title, participantGroup.participants, meeting.MeetingEndTime)
         +standardFooter

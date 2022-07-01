@@ -29,11 +29,19 @@ const DATETIME_CLEAR = {
     timeZoneName: 'short',
 };
 
+const TIME_SIMPLENOZERO = {
+    hour: 'numeric',
+    minute: 'numeric',
+    timeZone: 'America/Los_Angeles',
+    timeZoneName: 'short',
+};
+
 // Export the constants
 module.exports = {
     ACCEPT_ENCODING,
     AUTHORIZATION_CHECK,
     DATETIME_CLEAR,
+    TIME_SIMPLENOZERO,
     DB_TABLE,
     INTERNAL_SERVER_ERROR,
     KEEP_ALIVE,
@@ -70,7 +78,7 @@ module.exports.makeHTMLResponse = async (statusCode, body, acceptEncoding = '') 
         convertedBody = (await gzip(body)).toString('base64');
         maybeZipped = { 'Content-Encoding': 'gzip' };
         base64Encoded = true;
-    } else if(/\deflate\b/.test(acceptEncoding)) {
+    } else if(/\bdeflate\b/.test(acceptEncoding)) {
         convertedBody = (await deflate(body)).toString('base64');
         maybeZipped = { 'Content-Encoding': 'deflate' };
         base64Encoded = true;
@@ -81,7 +89,7 @@ module.exports.makeHTMLResponse = async (statusCode, body, acceptEncoding = '') 
         headers: {
             ...maybeZipped,
             'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-            'Content-Security-Policy': "default-src 'self' https:; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' https://cdnjs.cloudflare.com",
+            'Content-Security-Policy': "default-src 'self' https:; script-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline'",
             'X-Frame-Options': 'SAMEORIGIN',
             'X-Content-Type-Options': 'nosniff',
             'Referrer-Policy': 'strict-origin',
