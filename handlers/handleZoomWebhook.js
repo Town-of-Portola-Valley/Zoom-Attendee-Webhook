@@ -60,7 +60,6 @@ const updateJoinOrLeaveIfExists = async (joined, joinOrLeave) => {
     const joinLeaveTimeValue = joined ? joinOrLeave.participant.JoinTime : joinOrLeave.participant.LeaveTime;
     const statement = `UPDATE ${DB_TABLE}
         SET MeetingTitle=?
-        SET MeetingStartTime=?
         SET MeetingDuration=?
         SET ParticipantSessionIDs=set_add(ParticipantSessionIDs, <<${joinOrLeave.participant.ParticipantSessionID}>>)
         SET ParticipantName=?
@@ -75,7 +74,6 @@ const updateJoinOrLeaveIfExists = async (joined, joinOrLeave) => {
     `;
     const params = [
         { S: joinOrLeave.webinar.MeetingTitle },
-        { S: joinOrLeave.webinar.MeetingStartTime },
         { N: joinOrLeave.webinar.MeetingDuration.toString() },
         { S: joinOrLeave.participant.ParticipantName },
         { S: joinOrLeave.participant.ParticipantEmail },
