@@ -5,7 +5,7 @@ mixin timeline(data, endTime)
         div(class='progress')
             each datum in data
                 if datum.present
-                    div(class='progress-bar text-bg-success' role='progressbar' style=`width:${datum.percent}%` aria-valuenow=datum.percent aria-minvalue='0' aria-maxvalue='100' datum-bs-toggle='tooltip' title=datum.tooltip)
+                    div(class='progress-bar text-bg-success' role='progressbar' style=`width:${datum.percent}%` aria-valuenow=datum.percent aria-minvalue='0' aria-maxvalue='100' data-bs-toggle='tooltip' title=datum.tooltip)
                 else
                     div(class='progress-bar text-bg-secondary' role='progressbar' style=`width:${datum.percent}%;--bs-bg-opacity:0.5` aria-valuenow=datum.percent aria-minvalue='0' aria-maxvalue='100')
             if endTime
