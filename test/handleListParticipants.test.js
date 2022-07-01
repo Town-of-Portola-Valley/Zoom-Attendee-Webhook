@@ -24,8 +24,8 @@ describe('listParticipants', () => {
             const oneHourAgo = DateTime.now().minus({hours: 1});
             const result = await sortJoinLeaveTimes({
                 JoinTimes: [oneHourAgo],
-            });
-            expect(result).toEqual([{time: oneHourAgo, state: 1}]);
+            }, oneHourAgo);
+            expect(result).toEqual([{time: oneHourAgo, state: 0}, {time: oneHourAgo, state: 1}]);
         });
 
         it('single leave works', async () => {
@@ -34,8 +34,8 @@ describe('listParticipants', () => {
             const oneHourAgo = DateTime.now().minus({hours: 1});
             const result = await sortJoinLeaveTimes({
                 LeaveTimes: [oneHourAgo],
-            });
-            expect(result).toEqual([{time: oneHourAgo, state: 0}]);
+            }, oneHourAgo);
+            expect(result).toEqual([{time: oneHourAgo, state: 0},{time: oneHourAgo, state: 0}]);
         });
 
         it('simultaneous join leave works', async () => {
@@ -45,8 +45,8 @@ describe('listParticipants', () => {
             const result = await sortJoinLeaveTimes({
                 JoinTimes: [oneHourAgo],
                 LeaveTimes: [oneHourAgo],
-            });
-            expect(result).toEqual([{time: oneHourAgo, state: 1}, {time: oneHourAgo, state: 0}]);
+            }, oneHourAgo);
+            expect(result).toEqual([{time: oneHourAgo, state: 0}, {time: oneHourAgo, state: 1}, {time: oneHourAgo, state: 0}]);
         });
 
         it('join after leave works', async () => {
@@ -60,9 +60,10 @@ describe('listParticipants', () => {
             const result = await sortJoinLeaveTimes({
                 JoinTimes: [fourHoursAgo,twoHoursAgo],
                 LeaveTimes: [threeHoursAgo,oneHourAgo],
-            });
-            expect(result).toEqual([{time: fourHoursAgo, state: 1},
-                                   {time: threeHoursAgo, state: 0},
+            }, fourHoursAgo);
+            expect(result).toEqual([{ time: fourHoursAgo, state: 0},
+                                   { time: fourHoursAgo, state: 1},
+                                   { time: threeHoursAgo, state: 0},
                                    { time: twoHoursAgo, state: 1 },
                                    { time: oneHourAgo, state: 0 }]);
         })
@@ -118,18 +119,32 @@ describe('listParticipants', () => {
     });
 
     describe('durationToPercentage', () => {
-        it('meeting ended', async () => {
+        it('half hour in hour long ended meeting', async () => {
             expect.assertions(1);
 
             const now = DateTime.now();
             const halfHour = Duration.fromObject({minutes: 30});
             const oneHourAgo = now.minus({hours: 1});
             const longTime = Duration.fromObject({hours: 30});
-            const result = await durationToPercentage(halfHourAgo,
+            const result = await durationToPercentage(halfHour,
                                                   oneHourAgo,
                                                   longTime,
                                                   now);
             expect(result).toBeCloseTo(1/2 * 99);
+        });
+
+        it('95% duration not reached in regulation', async () => {
+            expect.assertions(1);
+
+            const now = DateTime.now();
+            const oneHourAgo = now.minus({hours: 1});
+            const oneHour = Duration.fromObject({hours: 1});
+            const twoHours = Duration.fromObject({hours: 2});
+            const result = await durationToPercentage(oneHour,
+                                                  oneHourAgo,
+                                                  twoHours,
+                                                  undefined);
+            expect(result).toBeCloseTo(1/2 * 100);
         });
 
         it('95% duration exceeded in regulation', async () => {
@@ -138,51 +153,11 @@ describe('listParticipants', () => {
             const now = DateTime.now();
             const oneHourAgo = now.minus({hours: 1});
             const oneHour = Duration.fromObject({hours: 1});
-            const result = await timeToPercentage(now,
+            const result = await durationToPercentage(oneHour,
                                                   oneHourAgo,
                                                   oneHour,
                                                   undefined);
             expect(result).toBeCloseTo(95);
-        });
-
-        it('95% duration exceeded in overtime', async () => {
-            expect.assertions(1);
-
-            const now = DateTime.now();
-            const oneHourAgo = now.minus({hours: 1});
-            const halfHour = Duration.fromObject({minutes: 30});
-            const result = await timeToPercentage(now,
-                                                  oneHourAgo,
-                                                  halfHour,
-                                                  undefined);
-            expect(result).toBeCloseTo(95);
-        });
-
-        it('95% duration not reached in regulation', async () => {
-            expect.assertions(1);
-
-            const now = DateTime.now();
-            const oneHourAgo = now.minus({hours: 1});
-            const twoHours = Duration.fromObject({hours: 2});
-            const result = await timeToPercentage(now,
-                                                  oneHourAgo,
-                                                  twoHours,
-                                                  undefined);
-            expect(result).toBeCloseTo(1/2 * 100);
-        });
-
-        it('95% duration not reached in overtime', async () => {
-            expect.assertions(1);
-
-            const now = DateTime.now();
-            const halfHourAgo = now.minus({minutes: 30});
-            const oneHourAgo = now.minus({hours: 1});
-            const halfHour = Duration.fromObject({minutes: 30});
-            const result = await timeToPercentage(halfHourAgo,
-                                                  oneHourAgo,
-                                                  halfHour,
-                                                  undefined);
-            expect(result).toBeCloseTo(1/2 * 95);
         });
 
         it('95% duration on the nose in regulation', async () => {
@@ -190,23 +165,25 @@ describe('listParticipants', () => {
 
             const now = DateTime.now();
             const longAgo = now.minus({hours: 95});
+            const ninetyFivePercentTime = Duration.fromObject({hours: 95});
             const longTime = Duration.fromObject({hours: 100});
-            const result = await timeToPercentage(now,
+            const result = await durationToPercentage(ninetyFivePercentTime,
                                                   longAgo,
                                                   longTime,
                                                   undefined);
             expect(result).toBeCloseTo(95);
         });
 
-        it('95% duration on the nose in overtime', async () => {
+        it('live in overtime', async () => {
             expect.assertions(1);
 
             const now = DateTime.now();
-            const longAgo = now.minus({hours: 96});
-            const longTime = Duration.fromObject({hours: 100});
-            const result = await timeToPercentage(now,
-                                                  longAgo,
-                                                  longTime,
+            const oneHourAgo = now.minus({hours: 1});
+            const oneHour = Duration.fromObject({hours: 1});
+            const halfHour = Duration.fromObject({minutes: 30});
+            const result = await durationToPercentage(oneHour,
+                                                  oneHourAgo,
+                                                  halfHour,
                                                   undefined);
             expect(result).toBeCloseTo(95);
         });
@@ -223,11 +200,17 @@ describe('listParticipants', () => {
                                                          oneHourAgo,
                                                          Duration.fromObject({hours: 1}),
                                                          undefined);
-            expect(result).toEqual(expect.arrayContaining([expect.objectContaining({
-                percent: 0,
-                present: true,
-                tooltip: expect.stringMatching(/Entered: \d?\d:\d\d [AP]M P[SD]T/),
-            })]));
+            expect(result).toEqual(expect.arrayContaining([
+                expect.objectContaining({
+                    percent: 0,
+                    present: false,
+                }),
+                expect.objectContaining({
+                    percent: expect.closeTo(95),
+                    present: true,
+                    tooltip: expect.stringMatching(/Entered: \d?\d:\d\d [AP]M P[SD]T/),
+                }),
+            ]));
         });
 
         it('single join half way', async () => {
@@ -241,11 +224,17 @@ describe('listParticipants', () => {
                                                          twoHoursAgo,
                                                          Duration.fromObject({hours: 2}),
                                                          undefined);
-            expect(result).toEqual(expect.arrayContaining([expect.objectContaining({
-                present: true,
-                percent: expect.closeTo(1/2 * 95),
-                tooltip: expect.stringMatching(/Entered: \d?\d:\d\d [AP]M P[SD]T/),
-            })]));
+            expect(result).toEqual(expect.arrayContaining([
+                expect.objectContaining({
+                    present: false,
+                    percent: expect.closeTo(1/2 * 95),
+                }),
+                expect.objectContaining({
+                    present: true,
+                    percent: expect.closeTo(1/2 * 95),
+                    tooltip: expect.stringMatching(/Entered: \d?\d:\d\d [AP]M P[SD]T/),
+                }),
+            ]));
         });
 
         it('join then leave', async () => {
@@ -262,8 +251,12 @@ describe('listParticipants', () => {
                                                          undefined);
             expect(result).toEqual(expect.arrayContaining([
                 expect.objectContaining({
-                    present: true,
+                    present: false,
                     percent: 0,
+                }),
+                expect.objectContaining({
+                    present: true,
+                    percent: expect.closeTo(1/2 * 95),
                     tooltip: expect.stringMatching(/\d?\d:\d\d [AP]M P[SD]T - \d?\d:\d\d [AP]M P[SD]T/),
                 }),
                 expect.objectContaining({
@@ -289,8 +282,12 @@ describe('listParticipants', () => {
                                                          undefined);
             expect(result).toEqual(expect.arrayContaining([
                 expect.objectContaining({
-                    present: true,
+                    present: false,
                     percent: 0,
+                }),
+                expect.objectContaining({
+                    present: true,
+                    percent: expect.closeTo(1/3 * 95),
                     tooltip: expect.stringMatching(/\d?\d:\d\d [AP]M P[SD]T - \d?\d:\d\d [AP]M P[SD]T/),
                 }),
                 expect.objectContaining({
@@ -299,7 +296,7 @@ describe('listParticipants', () => {
                 }),
                 expect.objectContaining({
                     present: true,
-                    percent: expect.closeTo(2/3 * 95),
+                    percent: expect.closeTo(1/3 * 95),
                     tooltip: expect.stringMatching(/Entered: \d?\d:\d\d [AP]M P[SD]T/),
                 }),
             ]));
@@ -317,6 +314,10 @@ describe('listParticipants', () => {
                                                          Duration.fromObject({hours: 3}),
                                                          undefined);
             expect(result).toEqual(expect.arrayContaining([
+                expect.objectContaining({
+                    present: false,
+                    percent: 0,
+                }),
                 expect.objectContaining({
                     present: false,
                     percent: 0,
