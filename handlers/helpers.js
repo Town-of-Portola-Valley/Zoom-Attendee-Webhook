@@ -29,11 +29,19 @@ const DATETIME_CLEAR = {
     timeZoneName: 'short',
 };
 
+const TIME_SIMPLENOZERO = {
+    hour: 'numeric',
+    minute: 'numeric',
+    timeZone: 'America/Los_Angeles',
+    timeZoneName: 'short',
+};
+
 // Export the constants
 module.exports = {
     ACCEPT_ENCODING,
     AUTHORIZATION_CHECK,
     DATETIME_CLEAR,
+    TIME_SIMPLENOZERO,
     DB_TABLE,
     INTERNAL_SERVER_ERROR,
     KEEP_ALIVE,

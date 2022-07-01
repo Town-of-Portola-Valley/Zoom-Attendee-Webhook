@@ -1,11 +1,19 @@
 'use strict';
 
 const _ = require('lodash');
-const { makeEmptyResponse, makeHTMLResponse } = require('../handlers/helpers');
+const { DateTime } = require('luxon');
+const { makeEmptyResponse, makeHTMLResponse, TIME_SIMPLENOZERO } = require('../handlers/helpers');
 
 const CONTENT_ENCODING = 'Content-Encoding';
 
 describe('helpers', () => {
+    it('DATETIME_TIME_SIMPLENOZERO', async () => {
+        expect.assertions(1);
+        const result = DateTime.fromObject({hour: 9, minute: 37}).toLocaleString(TIME_SIMPLENOZERO);
+
+        expect(result).toBe('9:37 AM PDT');
+    });
+
     it('empty response', async () => {
         expect.assertions(3);
         const result = await makeEmptyResponse(12345);

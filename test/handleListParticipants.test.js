@@ -223,7 +223,105 @@ describe('listParticipants', () => {
                                                          oneHourAgo,
                                                          Duration.fromObject({hours: 1}),
                                                          undefined);
-            expect(result).toEqual([{ percent: 0, present: true }]);
+            expect(result).toEqual(expect.arrayContaining([expect.objectContaining({
+                percent: 0,
+                present: true,
+                tooltip: expect.stringMatching(/Entered: \d?\d:\d\d [AP]M P[SD]T/),
+            })]));
+        });
+
+        it('single join half way', async () => {
+            expect.assertions(1);
+
+            const oneHourAgo = DateTime.now().minus({hours: 1});
+            const twoHoursAgo = DateTime.now().minus({hours: 2});
+            const result = await participantProgressData({
+                                                            JoinTimes: [oneHourAgo],
+                                                         },
+                                                         twoHoursAgo,
+                                                         Duration.fromObject({hours: 2}),
+                                                         undefined);
+            expect(result).toEqual(expect.arrayContaining([expect.objectContaining({
+                present: true,
+                percent: expect.closeTo(1/2 * 95),
+                tooltip: expect.stringMatching(/Entered: \d?\d:\d\d [AP]M P[SD]T/),
+            })]));
+        });
+
+        it('join then leave', async () => {
+            expect.assertions(1);
+
+            const oneHourAgo = DateTime.now().minus({hours: 1});
+            const twoHoursAgo = DateTime.now().minus({hours: 2});
+            const result = await participantProgressData({
+                                                            JoinTimes: [twoHoursAgo],
+                                                            LeaveTimes: [oneHourAgo],
+                                                         },
+                                                         twoHoursAgo,
+                                                         Duration.fromObject({hours: 2}),
+                                                         undefined);
+            expect(result).toEqual(expect.arrayContaining([
+                expect.objectContaining({
+                    present: true,
+                    percent: 0,
+                    tooltip: expect.stringMatching(/\d?\d:\d\d [AP]M P[SD]T - \d?\d:\d\d [AP]M P[SD]T/),
+                }),
+                expect.objectContaining({
+                    present: false,
+                    percent: expect.closeTo(1/2 * 95),
+                }),
+            ]));
+        });
+
+        it('join then leave then join', async () => {
+            expect.assertions(1);
+
+            const now = DateTime.now();
+            const oneHourAgo = now.minus({hours: 1});
+            const twoHoursAgo = now.minus({hours: 2});
+            const threeHoursAgo = now.minus({hours: 3});
+            const result = await participantProgressData({
+                                                            JoinTimes: [threeHoursAgo, oneHourAgo],
+                                                            LeaveTimes: [twoHoursAgo],
+                                                         },
+                                                         threeHoursAgo,
+                                                         Duration.fromObject({hours: 3}),
+                                                         undefined);
+            expect(result).toEqual(expect.arrayContaining([
+                expect.objectContaining({
+                    present: true,
+                    percent: 0,
+                    tooltip: expect.stringMatching(/\d?\d:\d\d [AP]M P[SD]T - \d?\d:\d\d [AP]M P[SD]T/),
+                }),
+                expect.objectContaining({
+                    present: false,
+                    percent: expect.closeTo(1/3 * 95),
+                }),
+                expect.objectContaining({
+                    present: true,
+                    percent: expect.closeTo(2/3 * 95),
+                    tooltip: expect.stringMatching(/Entered: \d?\d:\d\d [AP]M P[SD]T/),
+                }),
+            ]));
+        });
+
+        it('only leave', async () => {
+            expect.assertions(1);
+
+            const now = DateTime.now();
+            const oneHourAgo = now.minus({hours: 1});
+            const result = await participantProgressData({
+                                                            LeaveTimes: [oneHourAgo],
+                                                         },
+                                                         oneHourAgo,
+                                                         Duration.fromObject({hours: 3}),
+                                                         undefined);
+            expect(result).toEqual(expect.arrayContaining([
+                expect.objectContaining({
+                    present: false,
+                    percent: 0,
+                }),
+            ]));
         });
     });
 });

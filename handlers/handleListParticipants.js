@@ -14,11 +14,13 @@ const {
         ACCEPT_ENCODING,
         DB_TABLE,
         DATETIME_CLEAR,
+        TIME_SIMPLENOZERO,
         git_version,
       } = require('./helpers.js');
 
 const { DateTime, Duration } = require('luxon');
 DateTime.DATETIME_CLEAR = DATETIME_CLEAR;
+DateTime.TIME_SIMPLENOZERO = TIME_SIMPLENOZERO;
 
 const AWS = require('aws-sdk');
 
@@ -76,10 +78,21 @@ const timeToPercentage = async (time, meetingStartTime, scheduledDuration, meeti
 // which shows someone who joined at meeting start and left 40% through
 const participantProgressData = async (participant, meetingStartTime, scheduledDuration, meetingEndTime) => {
     const sortedTimes = await sortJoinLeaveTimes(participant);
-    return Promise.all(_.map(sortedTimes, async (t) => ({
-        percent: await timeToPercentage(t.time, meetingStartTime, scheduledDuration, meetingEndTime),
-        present: t.state > 0,
-    })));
+    return Promise.all(_.map(sortedTimes, async (t, i) => {
+        const result = {
+            percent: await timeToPercentage(t.time, meetingStartTime, scheduledDuration, meetingEndTime),
+            present: t.state > 0,
+        };
+        if(result.present) { // Add a tooltip
+            const nextTime = sortedTimes[i + 1];
+            if(nextTime) {
+                result.tooltip = `${t.time.toLocaleString(TIME_SIMPLENOZERO)} - ${nextTime.time.toLocaleString(TIME_SIMPLENOZERO)}`;
+            } else {
+                result.tooltip = `Entered: ${t.time.toLocaleString(TIME_SIMPLENOZERO)}`;
+            }
+        }
+        return result;
+    }));
 };
 
 module.exports.handleListParticipants = async (event) => {
