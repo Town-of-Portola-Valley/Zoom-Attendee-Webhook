@@ -75,11 +75,11 @@ const timeToPercentage = async (time, meetingStartTime, scheduledDuration, meeti
 // eg. [{percent: 0, present: true}, {percent: 40, present: false}]
 // which shows someone who joined at meeting start and left 40% through
 const participantProgressData = async (participant, meetingStartTime, scheduledDuration, meetingEndTime) => {
-    const sortedTimes = sortJoinLeaveTimes(participant);
-    return _.map(sortedTimed, t => ({
-        percent: timeToPercentage(t.time, meetingStartTime, scheduledDuration, meetingEndTime),
+    const sortedTimes = await sortJoinLeaveTimes(participant);
+    return Promise.all(_.map(sortedTimes, async (t) => ({
+        percent: await timeToPercentage(t.time, meetingStartTime, scheduledDuration, meetingEndTime),
         present: t.state > 0,
-    }))
+    })));
 };
 
 module.exports.handleListParticipants = async (event) => {
