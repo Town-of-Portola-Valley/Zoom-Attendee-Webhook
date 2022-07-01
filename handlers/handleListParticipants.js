@@ -28,7 +28,7 @@ const listParticipantsTemplate = pug.compileFile('views/list-participants.pug');
 
 // Sort the `participant.JoinTimes` and `participant.LeaveTimes` chronologically into a single array of objects with
 // `[{time:..., state:...}]` where state is incremented if the time at that position is a Join and decremented for a Leave
-const sortJoinLeaveTimes = async (participant) => {
+const sortJoinLeaveTimes = async (participant, meetingStartTime) => {
     const joinMerge = _.map(participant.JoinTimes, t => ({time: t, join: true}));
     const leaveMerge = _.map(participant.LeaveTimes, t => ({time: t, join: false}));
     const mergedSort = _.sortBy([...joinMerge, ...leaveMerge], 'time'); // In a tie, join before leave thanks to stable sort
@@ -40,8 +40,7 @@ const sortJoinLeaveTimes = async (participant) => {
             newItem.state = _.max([result[key].state - 1, 0]); // Cannot go below 0
         }
         return [...result, newItem];
-    }, [{time : 0, state: 0}]);
-    result.shift();
+    }, [{time : meetingStartTime, state: 0}]);
     return result;
 };
 
@@ -58,17 +57,16 @@ const activeBarWidth = async (meetingStartTime, scheduledDuration, meetingEndTim
     }
 };
 
-const timeToPercentage = async (time, meetingStartTime, scheduledDuration, meetingEndTime) => {
+const durationToPercentage = async (duration, meetingStartTime, scheduledDuration, meetingEndTime) => {
     const activeWidth = await activeBarWidth(meetingStartTime, scheduledDuration, meetingEndTime);
-    const timeSinceStart = time.diff(meetingStartTime);
     if(meetingEndTime) {
-        return activeWidth * (timeSinceStart/meetingEndTime.diff(meetingStartTime));
+        return activeWidth * (duration / meetingEndTime.diff(meetingStartTime));
     }
     const nowSinceStart = DateTime.now().diff(meetingStartTime);
     if(nowSinceStart / scheduledDuration < 0.95) {
-        return activeWidth * timeSinceStart / scheduledDuration;
+        return activeWidth * duration / scheduledDuration;
     } else {
-        return activeWidth * timeSinceStart / nowSinceStart;
+        return activeWidth * duration / nowSinceStart;
     }
 };
 
@@ -77,10 +75,19 @@ const timeToPercentage = async (time, meetingStartTime, scheduledDuration, meeti
 // eg. [{percent: 0, present: true}, {percent: 40, present: false}]
 // which shows someone who joined at meeting start and left 40% through
 const participantProgressData = async (participant, meetingStartTime, scheduledDuration, meetingEndTime) => {
-    const sortedTimes = await sortJoinLeaveTimes(participant);
+    const sortedTimes = await sortJoinLeaveTimes(participant, meetingStartTime);
+    const now = DateTime.now();
     return Promise.all(_.map(sortedTimes, async (t, i) => {
+        let endTime;
+        if(sortedTimes[i + 1]) {
+            endTime = sortedTimes[i + 1].time;
+        } else if(meetingEndTime) {
+            endTime = meetingEndTime;
+        } else {
+            endTime = now;
+        }
         const result = {
-            percent: await timeToPercentage(t.time, meetingStartTime, scheduledDuration, meetingEndTime),
+            percent: await durationToPercentage(endTime.diff(t.time), meetingStartTime, scheduledDuration, meetingEndTime),
             present: t.state > 0,
         };
         if(result.present) { // Add a tooltip
@@ -150,6 +157,8 @@ module.exports.handleListParticipants = async (event) => {
                             ...i,
                             MeetingStartTime: DateTime.fromISO(i.MeetingStartTime),
                             MeetingDuration: Duration.fromObject({ minutes: i.MeetingDuration }),
+                            JoinTimes: _.map(i.JoinTimes.values, DateTime.fromISO),
+                            LeaveTimes: _.map(i.LeaveTimes.values, DateTime.fromISO),
                             JoinTime: i.ParticipationCount ? _(i.JoinTimes.values).sortBy().map(DateTime.fromISO).last() : DateTime.now(), // Find the latest join time
                             LeaveTime: i.ParticipationCount ? DateTime.now() : _(i.LeaveTimes.values).sortBy().map(DateTime.fromISO).last(),
                             ParticipationCount: i.ParticipationCount ? 1 : 0,
@@ -160,18 +169,23 @@ module.exports.handleListParticipants = async (event) => {
 
     logger.info({ results: results });
 
-    const MeetingEndTime = ParticipantCount ? undefined : _(results['0']).sortBy('LeaveTime').reverse().first().LeaveTime;
-    const onlineParticipants = _(results['1']).sortBy('JoinTime').reverse().map(p => {
-        p.progressData = participantProgressData(p);
+    const sortedOnline = _(results['1']).sortBy('JoinTime').reverse().value();
+    const sortedOffline = _(results['0']).sortBy('LeaveTime').reverse().value();
+
+    const MeetingEndTime = sortedOnline.length ? undefined : _.first(sortedOffline).LeaveTime;
+
+    const onlineParticipants = await Promise.all(_.map(sortedOnline, async (p) => {
+        p.progressData = await participantProgressData(p, MeetingStartTime, MeetingDuration, MeetingEndTime);
         return p;
-    }).value();
-    const offlineParticipants = _(results['0']).sortBy('JoinTime').reverse().map(p => {
-        p.progressData = participantProgressData(p);
+    }));
+    const offlineParticipants = await Promise.all(_.map(sortedOffline, async (p) => {
+        p.progressData = await participantProgressData(p, MeetingStartTime, MeetingDuration, MeetingEndTime);
         return p;
-    }).value();
+    }));
 
     const response = listParticipantsTemplate({
         DateTime,
+        logger,
         page: { version: (await git_version)[1].gitVersion },
         meeting: {
             MeetingTitle,

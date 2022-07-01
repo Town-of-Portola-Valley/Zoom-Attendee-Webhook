@@ -8,7 +8,7 @@ const hLP = rewire('../handlers/handleListParticipants');
 const handleListParticipants = hLP.handleListParticipants;
 const sortJoinLeaveTimes = hLP.__get__('sortJoinLeaveTimes');
 const activeBarWidth = hLP.__get__('activeBarWidth');
-const timeToPercentage = hLP.__get__('timeToPercentage');
+const durationToPercentage = hLP.__get__('durationToPercentage');
 const participantProgressData = hLP.__get__('participantProgressData');
 
 describe('listParticipants', () => {
@@ -117,15 +117,15 @@ describe('listParticipants', () => {
         });
     });
 
-    describe('timeToPercentage', () => {
+    describe('durationToPercentage', () => {
         it('meeting ended', async () => {
             expect.assertions(1);
 
             const now = DateTime.now();
-            const halfHourAgo = now.minus({minutes: 30});
+            const halfHour = Duration.fromObject({minutes: 30});
             const oneHourAgo = now.minus({hours: 1});
             const longTime = Duration.fromObject({hours: 30});
-            const result = await timeToPercentage(halfHourAgo,
+            const result = await durationToPercentage(halfHourAgo,
                                                   oneHourAgo,
                                                   longTime,
                                                   now);

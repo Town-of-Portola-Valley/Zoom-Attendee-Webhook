@@ -89,7 +89,7 @@ module.exports.makeHTMLResponse = async (statusCode, body, acceptEncoding = '') 
         headers: {
             ...maybeZipped,
             'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
-            'Content-Security-Policy': "default-src 'self' https:; script-src 'self' https://cdnjs.cloudflare.com; style-src 'self' https://cdnjs.cloudflare.com",
+            'Content-Security-Policy': "default-src 'self' https:; script-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline'; style-src 'self' https://cdnjs.cloudflare.com 'unsafe-inline'",
             'X-Frame-Options': 'SAMEORIGIN',
             'X-Content-Type-Options': 'nosniff',
             'Referrer-Policy': 'strict-origin',
