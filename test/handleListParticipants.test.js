@@ -5,7 +5,7 @@ const { DateTime, Duration } = require('luxon');
 
 // Fish out private helper methods
 const hLP = rewire('../handlers/handleListParticipants');
-const handleListParticipants = hLP.handleListParticipants;
+const { handleListParticipants } = hLP;
 const sortJoinLeaveTimes = hLP.__get__('sortJoinLeaveTimes');
 const activeBarWidth = hLP.__get__('activeBarWidth');
 const durationToPercentage = hLP.__get__('durationToPercentage');
