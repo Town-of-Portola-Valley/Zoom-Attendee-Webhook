@@ -17,7 +17,7 @@
     "@hughescr/serverless-plugin-git-version-json": "^1.1.0",
     "@stryker-mutator/core": "^6.1.2",
     "@stryker-mutator/jest-runner": "^6.1.2",
-    "aws-sdk": "^2.1167.0",
+    "aws-sdk": "^2.1169.0",
     "eslint": "^8.19.0",
     "eslint-plugin-jest": "^26.5.3",
     "jest": "^28.1.2",
