@@ -51,9 +51,11 @@ const AWS = require('aws-sdk');
 const dynamoDB = new AWS.DynamoDB();
 module.exports.dynamoDB = dynamoDB;
 
+// Stryker disable next-line StringLiteral: git_version.json won't exist till deployment
 const git_version = stat(path.join(module.path, '..', 'git_version.json'))
     .then(res => {
         // If we did manage to stat the file, then load it
+        // Stryker disable next-line ArrayDeclaration,StringLiteral: git_version.json won't exist till deployment
         return [res, require(path.join(module.path, '..', 'git_version.json'))];
     })
     .catch(() => {
