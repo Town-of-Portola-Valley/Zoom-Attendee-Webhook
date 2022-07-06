@@ -31,6 +31,8 @@ provider:
     # DB_TABLE used by code to store/retrieve data in DynamoDB
     DB_TABLE:
       Ref: DBTable
+    AWS_NODEJS_CONNECTION_REUSE_ENABLED:
+      1
 
   stackTags:
     Organization: ${param:ORGANIZATION_NAME}
