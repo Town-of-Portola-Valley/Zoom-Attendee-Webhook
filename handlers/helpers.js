@@ -64,7 +64,7 @@ const git_version = stat(path.join(module.path, '..', 'git_version.json'))
     });
 module.exports.git_version = git_version;
 
-module.exports.makeHTMLResponse = async (statusCode, body, acceptEncoding = '') => {
+module.exports.makeHTMLResponse = async (statusCode, body, acceptEncoding) => {
     let maybeZipped = {};
     let base64Encoded = false;
     let convertedBody = body;
