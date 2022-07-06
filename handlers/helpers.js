@@ -47,8 +47,9 @@ module.exports = {
     ORGANIZATION_NAME,
 };
 
-const AWS = require('aws-sdk');
-const dynamoDB = new AWS.DynamoDB();
+const DynamoDB = require('aws-sdk/clients/dynamodb');
+// Create and export the dynamoDB service object
+const dynamoDB = new DynamoDB();
 module.exports.dynamoDB = dynamoDB;
 
 // Stryker disable next-line StringLiteral: git_version.json won't exist till deployment
