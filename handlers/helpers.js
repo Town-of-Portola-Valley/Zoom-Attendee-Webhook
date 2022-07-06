@@ -51,7 +51,6 @@ const AWS = require('aws-sdk');
 const dynamoDB = new AWS.DynamoDB();
 module.exports.dynamoDB = dynamoDB;
 
-/* istanbul ignore next */
 const git_version = stat(path.join(module.path, '..', 'git_version.json'))
     .then(res => {
         // If we did manage to stat the file, then load it
