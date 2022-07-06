@@ -170,7 +170,7 @@ module.exports.handleListParticipants = async (event) => {
     const acceptEncoding = event.headers && event.headers[ACCEPT_ENCODING];
     const meetingID = event.pathParameters.meeting_id;
 
-    const items = fetchDateFromDynamo(meetingID);
+    const items = await fetchDateFromDynamo(meetingID);
 
     const { MeetingTitle, MeetingID, MeetingStartTime, MeetingDuration, ParticipantCount, results } = preProcessResults(items);
 
