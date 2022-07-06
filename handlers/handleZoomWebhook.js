@@ -168,7 +168,6 @@ module.exports.handleZoomWebhook = async (event) => {
     }
 
     // At this point the body looks good; has an event and a payload
-    logger.info({ payload: body.payload });
 
     let joined;
     switch(body.event) {

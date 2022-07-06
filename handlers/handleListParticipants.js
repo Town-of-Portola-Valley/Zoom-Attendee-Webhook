@@ -131,7 +131,6 @@ module.exports.handleListParticipants = async (event) => {
     let items = [];
     do {
         const raw = await dynamoDB.executeStatement({ Statement: statement, nextToken }).promise();
-        logger.info('RAW', raw);
         items = [...items, ...raw.Items];
         nextToken = raw.nextToken;
     } while(nextToken);
@@ -166,7 +165,6 @@ module.exports.handleListParticipants = async (event) => {
                     .value(),
         };
 
-    logger.info({ results: results });
 
     const sortedOnline = _(results['1']).sortBy('JoinTime').reverse().value();
     const sortedOffline = _(results['0']).sortBy('LeaveTime').reverse().value();
@@ -184,7 +182,6 @@ module.exports.handleListParticipants = async (event) => {
 
     const response = listParticipantsTemplate({
         DateTime,
-        logger,
         page: { version: (await git_version)[1].gitVersion },
         meeting: {
             MeetingTitle,
