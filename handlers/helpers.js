@@ -25,14 +25,12 @@ const DATETIME_CLEAR = {
     day: 'numeric',
     hour: 'numeric',
     minute: 'numeric',
-    timeZone: 'America/Los_Angeles',
     timeZoneName: 'short',
 };
 
 const TIME_SIMPLENOZERO = {
     hour: 'numeric',
     minute: 'numeric',
-    timeZone: 'America/Los_Angeles',
     timeZoneName: 'short',
 };
 
