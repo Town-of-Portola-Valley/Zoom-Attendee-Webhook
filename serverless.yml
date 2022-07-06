@@ -13,7 +13,7 @@ provider:
   # These values are defaults, and can be over-written in each function below
   architecture: arm64
   runtime: nodejs16.x
-  memorySize: 256
+  memorySize: 1024
   timeout: 10
   region: us-west-2
   versionFunctions: false
