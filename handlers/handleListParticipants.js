@@ -29,10 +29,10 @@ const listParticipantsTemplate = pug.compileFile('views/list-participants.pug');
 // Sort the `participant.JoinTimes` and `participant.LeaveTimes` chronologically into a single array of objects with
 // `[{time:..., state:...}]` where state is incremented if the time at that position is a Join and decremented for a Leave
 const sortJoinLeaveTimes = async (participant, meetingStartTime) => {
-    const joinMerge = _.map(participant.JoinTimes, t => ({time: t, join: true}));
-    const leaveMerge = _.map(participant.LeaveTimes, t => ({time: t, join: false}));
+    const joinMerge = _.map(participant.JoinTimes, t => ({ time: t, join: true }));
+    const leaveMerge = _.map(participant.LeaveTimes, t => ({ time: t, join: false }));
     const mergedSort = _.sortBy([...joinMerge, ...leaveMerge], 'time'); // In a tie, join before leave thanks to stable sort
-    const result = _.reduce(mergedSort, (result, value, key) => {
+    return _.reduce(mergedSort, (result, value, key) => {
         const newItem = { time: value.time };
         if(value.join) {
             newItem.state = result[key].state + 1;
@@ -40,8 +40,7 @@ const sortJoinLeaveTimes = async (participant, meetingStartTime) => {
             newItem.state = _.max([result[key].state - 1, 0]); // Cannot go below 0
         }
         return [...result, newItem];
-    }, [{time : meetingStartTime, state: 0}]);
-    return result;
+    }, [{ time : meetingStartTime, state: 0 }]);
 };
 
 // How wide (as a percentage) should the active part of the bar be, reserving the remainder for the "tail"
@@ -102,20 +101,7 @@ const participantProgressData = async (participant, meetingStartTime, scheduledD
     }));
 };
 
-module.exports.handleListParticipants = async (event) => {
-    if(!event) {
-        logger.error(NO_EVENT_RECEIVED);
-
-        return makeHTMLResponse(500, INTERNAL_SERVER_ERROR);
-    }
-
-    if(event[KEEP_ALIVE]) {
-        return makeEmptyResponse(204);
-    }
-
-    const acceptEncoding = event.headers && event.headers[ACCEPT_ENCODING];
-    const meetingID = event.pathParameters.meeting_id;
-
+const fetchDateFromDynamo = async (meetingID) => {
     const statement = `SELECT MeetingID,
                               MeetingTitle,
                               MeetingStartTime,
@@ -132,47 +118,66 @@ module.exports.handleListParticipants = async (event) => {
     let items = [];
     do {
         const raw = await dynamoDB.executeStatement({ Statement: statement, nextToken }).promise();
-        logger.info('RAW', raw);
         items = [...items, ...raw.Items];
         nextToken = raw.nextToken;
     } while(nextToken);
 
-    const { MeetingTitle, MeetingID, MeetingStartTime, MeetingDuration, ParticipantCount, results } =
-        (items.length === 0) ? {
-            MeetingTitle : 'This meeting does not exist',
-            MeetingID : event.pathParameters.meeting_id,
-            MeetingStartTime : DateTime.now(),
-            MeetingDuration : Duration.fromObject({ minutes: 0 }),
-            ParticipantCount : 0,
-            results: {},
-        } : {
-            MeetingTitle : items[0].MeetingTitle.S,
-            MeetingID : items[0].MeetingID.N,
-            MeetingStartTime : DateTime.fromISO(_(items).sortBy('MeetingStartTime.S').first().MeetingStartTime.S),
-            MeetingDuration : Duration.fromObject({ minutes: items[0].MeetingDuration.N }),
-            ParticipantCount : items.length,
-            results: _(items)
-                    .map(AWS.DynamoDB.Converter.unmarshall)
-                    .map(i => ({
-                            ...i,
-                            MeetingStartTime: DateTime.fromISO(i.MeetingStartTime),
-                            MeetingDuration: Duration.fromObject({ minutes: i.MeetingDuration }),
-                            JoinTimes: _.map(i.JoinTimes && i.JoinTimes.values || [], DateTime.fromISO),
-                            LeaveTimes: _.map(i.LeaveTimes && i.LeaveTimes.values || [], DateTime.fromISO),
-                            JoinTime: i.ParticipationCount ? _(i.JoinTimes.values).sortBy().map(DateTime.fromISO).last() : DateTime.now(), // Find the latest join time
-                            LeaveTime: i.ParticipationCount ? DateTime.now() : _(i.LeaveTimes.values).sortBy().map(DateTime.fromISO).last(),
-                            ParticipationCount: i.ParticipationCount ? 1 : 0,
-                    }))
-                    .groupBy('ParticipationCount')
-                    .value(),
-        };
+    return items;
+};
 
-    logger.info({ results: results });
+const preProcessResults = items => {
+    return (items.length === 0) ? {
+        MeetingTitle: 'This meeting does not exist',
+        MeetingID: event.pathParameters.meeting_id,
+        MeetingStartTime: DateTime.now(),
+        MeetingDuration: Duration.fromObject({ minutes: 0 }),
+        ParticipantCount: 0,
+        results: {},
+    } : {
+        MeetingTitle: items[0].MeetingTitle.S,
+        MeetingID: items[0].MeetingID.N,
+        MeetingStartTime: DateTime.fromISO(_(items).sortBy('MeetingStartTime.S').head().MeetingStartTime.S),
+        MeetingDuration: Duration.fromObject({ minutes: items[0].MeetingDuration.N }),
+        ParticipantCount: items.length,
+        results: _(items)
+            .map(AWS.DynamoDB.Converter.unmarshall)
+            .map(i => ({
+                ...i,
+                MeetingStartTime: DateTime.fromISO(i.MeetingStartTime),
+                MeetingDuration: Duration.fromObject({ minutes: i.MeetingDuration }),
+                JoinTimes: _.map(i.JoinTimes && i.JoinTimes.values || [], DateTime.fromISO),
+                LeaveTimes: _.map(i.LeaveTimes && i.LeaveTimes.values || [], DateTime.fromISO),
+                JoinTime: i.ParticipationCount ? _(i.JoinTimes.values).sortBy().map(DateTime.fromISO).last() : DateTime.now(), // Find the latest join time
+                LeaveTime: i.ParticipationCount ? DateTime.now() : _(i.LeaveTimes.values).sortBy().map(DateTime.fromISO).last(),
+                ParticipationCount: i.ParticipationCount ? 1 : 0,
+            }))
+            .groupBy('ParticipationCount')
+            .value(),
+    };
+};
+
+module.exports.handleListParticipants = async (event) => {
+    if(!event) {
+        logger.error(NO_EVENT_RECEIVED);
+
+        return makeHTMLResponse(500, INTERNAL_SERVER_ERROR);
+    }
+
+    if(event[KEEP_ALIVE]) {
+        return makeEmptyResponse(204);
+    }
+
+    const acceptEncoding = event.headers && event.headers[ACCEPT_ENCODING];
+    const meetingID = event.pathParameters.meeting_id;
+
+    const items = fetchDateFromDynamo(meetingID);
+
+    const { MeetingTitle, MeetingID, MeetingStartTime, MeetingDuration, ParticipantCount, results } = preProcessResults(items);
 
     const sortedOnline = _(results['1']).sortBy('JoinTime').reverse().value();
     const sortedOffline = _(results['0']).sortBy('LeaveTime').reverse().value();
 
-    const MeetingEndTime = sortedOnline.length ? undefined : _.first(sortedOffline) && _.first(sortedOffline).LeaveTime || DateTime.now();
+    const MeetingEndTime = sortedOnline.length ? undefined : _.head(sortedOffline) && _.head(sortedOffline).LeaveTime || DateTime.now();
 
     const onlineParticipants = await Promise.all(_.map(sortedOnline, async (p) => {
         p.progressData = await participantProgressData(p, MeetingStartTime, MeetingDuration, MeetingEndTime);
@@ -185,7 +190,6 @@ module.exports.handleListParticipants = async (event) => {
 
     const response = listParticipantsTemplate({
         DateTime,
-        logger,
         page: { version: (await git_version)[1].gitVersion },
         meeting: {
             MeetingTitle,

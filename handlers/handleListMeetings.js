@@ -53,7 +53,6 @@ module.exports.handleListMeetings = async (event) => {
     let items = [];
     do {
         const raw = await dynamoDB.executeStatement({ Statement: statement, nextToken }).promise();
-        logger.info('RAW', raw);
         items = [...items, ...raw.Items];
         nextToken = raw.nextToken;
     } while(nextToken);
@@ -76,7 +75,6 @@ module.exports.handleListMeetings = async (event) => {
                             [`${i.MeetingID}`]: updated,
                         };
                     }, {});
-    logger.info({ results: results });
 
     const response = listMeetingsTemplate({
         DateTime,

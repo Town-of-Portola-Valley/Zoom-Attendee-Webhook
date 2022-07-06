@@ -25,14 +25,12 @@ const DATETIME_CLEAR = {
     day: 'numeric',
     hour: 'numeric',
     minute: 'numeric',
-    timeZone: 'America/Los_Angeles',
     timeZoneName: 'short',
 };
 
 const TIME_SIMPLENOZERO = {
     hour: 'numeric',
     minute: 'numeric',
-    timeZone: 'America/Los_Angeles',
     timeZoneName: 'short',
 };
 
@@ -49,14 +47,16 @@ module.exports = {
     ORGANIZATION_NAME,
 };
 
-const AWS = require('aws-sdk');
-const dynamoDB = new AWS.DynamoDB();
+const DynamoDB = require('aws-sdk/clients/dynamodb');
+// Create and export the dynamoDB service object
+const dynamoDB = new DynamoDB();
 module.exports.dynamoDB = dynamoDB;
 
-/* istanbul ignore next */
+// Stryker disable next-line StringLiteral: git_version.json won't exist till deployment
 const git_version = stat(path.join(module.path, '..', 'git_version.json'))
     .then(res => {
         // If we did manage to stat the file, then load it
+        // Stryker disable next-line ArrayDeclaration,StringLiteral: git_version.json won't exist till deployment
         return [res, require(path.join(module.path, '..', 'git_version.json'))];
     })
     .catch(() => {
@@ -65,13 +65,19 @@ const git_version = stat(path.join(module.path, '..', 'git_version.json'))
     });
 module.exports.git_version = git_version;
 
-module.exports.makeHTMLResponse = async (statusCode, body, acceptEncoding = '') => {
+module.exports.makeHTMLResponse = async (statusCode, body, acceptEncoding) => {
     let maybeZipped = {};
     let base64Encoded = false;
     let convertedBody = body;
 
     if(/\bbr\b/.test(acceptEncoding)) {
-        convertedBody = (await brotli(body)).toString('base64');
+        convertedBody = (await brotli(body, {
+            params: {
+                [zlib.constants.BROTLI_PARAM_MODE]: zlib.constants.BROTLI_MODE_TEXT,
+                [zlib.constants.BROTLI_PARAM_QUALITY]: 4,
+                [zlib.constants.BROTLI_PARAM_SIZE_HINT]: body.length,
+            },
+        })).toString('base64');
         maybeZipped = { 'Content-Encoding': 'br' };
         base64Encoded = true;
     } else if(/\bgzip\b/.test(acceptEncoding)) {

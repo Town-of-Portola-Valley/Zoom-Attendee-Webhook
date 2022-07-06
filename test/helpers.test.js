@@ -2,16 +2,39 @@
 
 const _ = require('lodash');
 const { DateTime } = require('luxon');
-const { makeEmptyResponse, makeHTMLResponse, TIME_SIMPLENOZERO } = require('../handlers/helpers');
+
+const { makeEmptyResponse, makeHTMLResponse, DATETIME_CLEAR, TIME_SIMPLENOZERO, git_version } = require('../handlers/helpers');
 
 const CONTENT_ENCODING = 'Content-Encoding';
 
 describe('helpers', () => {
-    it('DATETIME_TIME_SIMPLENOZERO', async () => {
+    describe('git_version', () => {
+        it('returns array with date and version', async () => {
+            expect.assertions(1);
+
+            await expect(git_version).resolves.toStrictEqual(expect.arrayContaining([
+                expect.objectContaining({
+                    mtime: expect.any(Object)
+                }),
+                expect.objectContaining({
+                    gitVersion: expect.stringMatching(/^\d+\.\d+\.\d+/),
+                })
+            ]));
+        });
+    });
+
+    it('TIME_SIMPLENOZERO', async () => {
         expect.assertions(1);
-        const result = DateTime.fromObject({hour: 9, minute: 37}).toLocaleString(TIME_SIMPLENOZERO);
+        const result = DateTime.fromObject({ hour: 9, minute: 37 }, { zone: 'America/Los_Angeles' }).toLocaleString(TIME_SIMPLENOZERO);
 
         expect(result).toBe('9:37 AM PDT');
+    });
+
+    it('DATETIME_CLEAR', async () => {
+        expect.assertions(1);
+        const result = DateTime.fromObject({ year: 2022, month: 7, day: 5, hour: 9, minute: 37 }, { zone: 'America/Los_Angeles' }).toLocaleString(DATETIME_CLEAR);
+
+        expect(result).toBe('Tue, Jul 5, 9:37 AM PDT');
     });
 
     it('empty response', async () => {
@@ -24,6 +47,34 @@ describe('helpers', () => {
     });
 
     describe('html response', () => {
+        it('security headers', async () => {
+            expect.assertions(1);
+            const result = await makeHTMLResponse();
+
+            expect(result).toStrictEqual(expect.objectContaining({
+                headers: expect.objectContaining({
+                    'Strict-Transport-Security': expect.stringMatching(/.+/),
+                    'Content-Security-Policy': expect.stringMatching(/.+/),
+                    'X-Frame-Options': expect.stringMatching(/.+/),
+                    'X-Content-Type-Options': expect.stringMatching(/.+/),
+                    'Referrer-Policy': expect.stringMatching(/.+/),
+                    'X-XSS-Protection': expect.stringMatching(/.+/),
+                }),
+            }));
+        });
+
+        it('content headers', async () => {
+            expect.assertions(1);
+            const result = await makeHTMLResponse();
+
+            expect(result).toStrictEqual(expect.objectContaining({
+                headers: expect.objectContaining({
+                    'Content-Type': expect.stringMatching(/^text\/html$/),
+                    Vary: 'Accept-Encoding',
+                }),
+            }));
+        });
+
         it('no accept-encoding', async () => {
             expect.assertions(6);
             const result = await makeHTMLResponse(12345, 'TEST');
