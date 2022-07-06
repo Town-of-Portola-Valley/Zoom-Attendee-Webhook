@@ -16,5 +16,7 @@ module.exports = {
     'jest/prefer-strict-equal': 'warn',
     'jest/require-hook': 'warn',
     'jest/require-top-level-describe': 'error',
+    'sonarjs/no-duplicate-string': 'off',
+    'node/no-unpublished-require': 'off',
   }
 };
