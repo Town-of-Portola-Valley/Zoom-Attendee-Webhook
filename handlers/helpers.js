@@ -70,7 +70,13 @@ module.exports.makeHTMLResponse = async (statusCode, body, acceptEncoding) => {
     let convertedBody = body;
 
     if(/\bbr\b/.test(acceptEncoding)) {
-        convertedBody = (await brotli(body)).toString('base64');
+        convertedBody = (await brotli(body, {
+            params: {
+                [zlib.constants.BROTLI_PARAM_MODE]: zlib.constants.BROTLI_MODE_TEXT,
+                [zlib.constants.BROTLI_PARAM_QUALITY]: 4,
+                [zlib.constants.BROTLI_PARAM_SIZE_HINT]: body.length,
+            },
+        })).toString('base64');
         maybeZipped = { 'Content-Encoding': 'br' };
         base64Encoded = true;
     } else if(/\bgzip\b/.test(acceptEncoding)) {
