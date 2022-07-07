@@ -101,7 +101,7 @@ const participantProgressData = async (participant, meetingStartTime, scheduledD
     }));
 };
 
-const fetchDateFromDynamo = async (meetingID) => {
+const fetchDataFromDynamo = async (meetingID) => {
     const statement = `SELECT MeetingID,
                               MeetingTitle,
                               MeetingStartTime,
@@ -170,7 +170,7 @@ module.exports.handleListParticipants = async (event) => {
     const acceptEncoding = event.headers && event.headers[ACCEPT_ENCODING];
     const meetingID = event.pathParameters.meeting_id;
 
-    const items = await fetchDateFromDynamo(meetingID);
+    const items = await fetchDataFromDynamo(meetingID);
 
     const { MeetingTitle, MeetingID, MeetingStartTime, MeetingDuration, ParticipantCount, results } = preProcessResults(meetingID, items);
 
