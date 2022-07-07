@@ -11,10 +11,6 @@ const participantProgressData = hLP._participantProgressData;
 const preProcessResults = hLP._preProcessResults;
 
 describe('listParticipants', () => {
-    beforeEach(() => {
-      jest.restoreAllMocks();
-      jest.clearAllMocks();
-    });
 
     describe('sortJoinLeaveTimes', () => {
         it('single join works', async () => {

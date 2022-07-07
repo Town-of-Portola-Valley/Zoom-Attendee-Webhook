@@ -7,8 +7,7 @@ const foo = require('../index');
 
 describe('webhook', () => {
     beforeEach(() => {
-      jest.restoreAllMocks();
-      jest.clearAllMocks();
+        jest.restoreAllMocks();
     });
 
     describe('basic data checks', () => {
