@@ -10,11 +10,8 @@ const CONTENT_ENCODING = 'Content-Encoding';
 describe('helpers', () => {
     describe('git_version', () => {
         beforeEach(() => {
-            jest.restoreAllMocks();
-            jest.clearAllMocks();
             jest.resetModules();
         });
-
         it('reads git_version.json file', async () => {
             expect.assertions(1);
             let now;
@@ -45,6 +42,7 @@ describe('helpers', () => {
         it('returns array with date and version', async () => {
             expect.assertions(1);
             jest.dontMock('node:fs'); // Not sure why this is needed when beforeEach() should have reset everything
+            jest.dontMock(path.join(module.path, '..', 'git_version.json'));
             const { git_version } = require('../handlers/helpers');
 
             await expect(git_version).resolves.toStrictEqual(expect.arrayContaining([
