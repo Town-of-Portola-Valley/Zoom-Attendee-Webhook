@@ -2,22 +2,56 @@
 
 const _ = require('lodash');
 const { DateTime } = require('luxon');
-
-const { makeEmptyResponse, makeHTMLResponse, DATETIME_CLEAR, TIME_SIMPLENOZERO, git_version } = require('../handlers/helpers');
+const path = require('node:path');
+const { makeEmptyResponse, makeHTMLResponse, DATETIME_CLEAR, TIME_SIMPLENOZERO } = require('../handlers/helpers');
 
 const CONTENT_ENCODING = 'Content-Encoding';
 
 describe('helpers', () => {
     describe('git_version', () => {
+        beforeEach(() => {
+            jest.clearAllMocks();
+            jest.resetModules();
+        });
+
+        it('reads git_version.json file', async () => {
+            expect.assertions(1);
+            let now;
+            jest.mock('node:fs', () => {
+                const foo = new Date(); // hack to bring this in scope so it can be
+                now = foo;
+                return {
+                    promises: {
+                        stat: jest.fn().mockResolvedValue({ mtime: foo }),
+                    },
+                };
+            });
+            jest.mock(path.join(module.path, '..', 'git_version.json'), () => ({
+                gitVersion: '2.3.4',
+            }), { virtual: true });
+
+            const { git_version } = require('../handlers/helpers');
+            await expect(git_version).resolves.toStrictEqual(expect.arrayContaining([
+                expect.objectContaining({
+                    mtime: now,
+                }),
+                expect.objectContaining({
+                    gitVersion: '2.3.4',
+                })
+            ]));
+        });
+
         it('returns array with date and version', async () => {
             expect.assertions(1);
+            jest.dontMock('node:fs'); // Not sure why this is needed when beforeEach() should have reset everything
+            const { git_version } = require('../handlers/helpers');
 
             await expect(git_version).resolves.toStrictEqual(expect.arrayContaining([
                 expect.objectContaining({
                     mtime: expect.any(Object)
                 }),
                 expect.objectContaining({
-                    gitVersion: expect.stringMatching(/^\d+\.\d+\.\d+/),
+                    gitVersion: '1.0.0',
                 })
             ]));
         });
