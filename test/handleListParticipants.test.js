@@ -15,7 +15,6 @@ const AWS = require('aws-sdk');
 const _ = require('lodash');
 
 describe('listParticipants', () => {
-
     describe('sortJoinLeaveTimes', () => {
         it('single join works', async () => {
             expect.assertions(1);
