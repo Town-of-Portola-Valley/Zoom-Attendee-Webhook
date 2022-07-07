@@ -125,10 +125,10 @@ const fetchDateFromDynamo = async (meetingID) => {
     return items;
 };
 
-const preProcessResults = items => {
+const preProcessResults = (meetingID, items) => {
     return (items.length === 0) ? {
         MeetingTitle: 'This meeting does not exist',
-        MeetingID: event.pathParameters.meeting_id,
+        MeetingID: meetingID,
         MeetingStartTime: DateTime.now(),
         MeetingDuration: Duration.fromObject({ minutes: 0 }),
         ParticipantCount: 0,
@@ -172,7 +172,7 @@ module.exports.handleListParticipants = async (event) => {
 
     const items = await fetchDateFromDynamo(meetingID);
 
-    const { MeetingTitle, MeetingID, MeetingStartTime, MeetingDuration, ParticipantCount, results } = preProcessResults(items);
+    const { MeetingTitle, MeetingID, MeetingStartTime, MeetingDuration, ParticipantCount, results } = preProcessResults(meetingID, items);
 
     const sortedOnline = _(results['1']).sortBy('JoinTime').reverse().value();
     const sortedOffline = _(results['0']).sortBy('LeaveTime').reverse().value();
