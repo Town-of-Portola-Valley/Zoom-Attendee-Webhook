@@ -22,7 +22,6 @@
     "eslint-plugin-jest": "^26.5.3",
     "jest": "^28.1.2",
     "jest-log-failure-reporter": "^1.0.0",
-    "rewire": "^6.0.0",
     "serverless": "^3.19.0",
     "serverless-domain-manager": "^6.0.3",
     "serverless-plugin-log-retention": "^2.0.0",

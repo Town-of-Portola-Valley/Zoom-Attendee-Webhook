@@ -1,14 +1,14 @@
 'use strict';
 
-const rewire = require('rewire');
 const { DateTime, Duration } = require('luxon');
 
 // Fish out private helper methods
-const hLP = rewire('../handlers/handleListParticipants');
-const sortJoinLeaveTimes = hLP.__get__('sortJoinLeaveTimes');
-const activeBarWidth = hLP.__get__('activeBarWidth');
-const durationToPercentage = hLP.__get__('durationToPercentage');
-const participantProgressData = hLP.__get__('participantProgressData');
+const hLP = require('../handlers/handleListParticipants');
+const sortJoinLeaveTimes = hLP._sortJoinLeaveTimes;
+const activeBarWidth = hLP._activeBarWidth;
+const durationToPercentage = hLP._durationToPercentage;
+const participantProgressData = hLP._participantProgressData;
+const preProcessResults = hLP._preProcessResults;
 
 describe('listParticipants', () => {
     beforeEach(() => {

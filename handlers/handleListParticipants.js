@@ -42,6 +42,7 @@ const sortJoinLeaveTimes = async (participant, meetingStartTime) => {
         return [...result, newItem];
     }, [{ time : meetingStartTime, state: 0 }]);
 };
+module.exports._sortJoinLeaveTimes = sortJoinLeaveTimes;
 
 // How wide (as a percentage) should the active part of the bar be, reserving the remainder for the "tail"
 const activeBarWidth = async (meetingStartTime, scheduledDuration, meetingEndTime) => {
@@ -55,6 +56,7 @@ const activeBarWidth = async (meetingStartTime, scheduledDuration, meetingEndTim
         return 95;
     }
 };
+module.exports._activeBarWidth = activeBarWidth;
 
 const durationToPercentage = async (duration, meetingStartTime, scheduledDuration, meetingEndTime) => {
     const activeWidth = await activeBarWidth(meetingStartTime, scheduledDuration, meetingEndTime);
@@ -68,6 +70,7 @@ const durationToPercentage = async (duration, meetingStartTime, scheduledDuratio
         return activeWidth * duration / nowSinceStart;
     }
 };
+module.exports._durationToPercentage = durationToPercentage;
 
 // For a participant, chunk up an array of percentage values and present/absent values for building
 // the bootstrap progress bar
@@ -100,6 +103,7 @@ const participantProgressData = async (participant, meetingStartTime, scheduledD
         return result;
     }));
 };
+module.exports._participantProgressData = participantProgressData;
 
 const fetchDataFromDynamo = async (meetingID) => {
     const statement = `SELECT MeetingID,
@@ -124,6 +128,7 @@ const fetchDataFromDynamo = async (meetingID) => {
 
     return items;
 };
+module.exports._fetchDataFromDynamo = fetchDataFromDynamo;
 
 const preProcessResults = (meetingID, items) => {
     return (items.length === 0) ? {
@@ -155,6 +160,7 @@ const preProcessResults = (meetingID, items) => {
             .value(),
     };
 };
+module.exports._preProcessResults = preProcessResults;
 
 module.exports.handleListParticipants = async (event) => {
     if(!event) {
