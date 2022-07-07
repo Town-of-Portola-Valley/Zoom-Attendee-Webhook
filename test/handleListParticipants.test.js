@@ -11,8 +11,6 @@ const participantProgressData = hLP._participantProgressData;
 const preProcessResults = hLP._preProcessResults;
 
 const { dynamoDB } = require('../handlers/helpers');
-const AWS = require('aws-sdk');
-const _ = require('lodash');
 
 describe('listParticipants', () => {
     describe('sortJoinLeaveTimes', () => {
