@@ -3690,6 +3690,11 @@ jest-leak-detector@^28.1.1:
     jest-get-type "^28.0.2"
     pretty-format "^28.1.1"
 
+jest-log-failure-reporter@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/jest-log-failure-reporter/-/jest-log-failure-reporter-1.0.0.tgz#d46185e638a78006065c527557dcfa336d4017f4"
+  integrity sha512-tYZ/ZFZ3QIX6PICjLgxtMA1RzymdpGUef3IY7FLMVCmV3LvGrGaq9BiL79RPqxCP6j3uee42I+wFrpNvzd663g==
+
 jest-matcher-utils@^28.1.1:
   version "28.1.1"
   resolved "https://registry.yarnpkg.com/jest-matcher-utils/-/jest-matcher-utils-28.1.1.tgz#a7c4653c2b782ec96796eb3088060720f1e29304"
