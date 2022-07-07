@@ -10,6 +10,7 @@ const CONTENT_ENCODING = 'Content-Encoding';
 describe('helpers', () => {
     describe('git_version', () => {
         beforeEach(() => {
+            jest.restoreAllMocks();
             jest.clearAllMocks();
             jest.resetModules();
         });
@@ -48,7 +49,7 @@ describe('helpers', () => {
 
             await expect(git_version).resolves.toStrictEqual(expect.arrayContaining([
                 expect.objectContaining({
-                    mtime: expect.any(Object)
+                    mtime: expect.any(Date)
                 }),
                 expect.objectContaining({
                     gitVersion: '1.0.0',
