@@ -48,6 +48,7 @@ html
     head
         title #{page.title}
         +standardHead
+        meta(name='description' content='List of meetings for '+page.title)
     body
         h1(class='my-2 text-center') #{page.title}
         div(class='list-group-flush')
