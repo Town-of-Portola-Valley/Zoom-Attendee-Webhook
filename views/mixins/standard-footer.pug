@@ -3,8 +3,10 @@ mixin standardFooter
         a(target='_blank' rel='external noopener noreferrer' href='https://github.com/Town-of-Portola-Valley/Zoom-Attendee-Webhook' class='fw-lighter mx-3 mb-1') Site Source Code
         a(target='_blank' rel='external noopener noreferrer'  href='https://github.com/Town-of-Portola-Valley/Zoom-Attendee-Webhook/issues/new/choose' class='fw-lighter mx-3 mb-1') Feedback
         small(class='fw-lighter mx-3 mb-1') Version: #{page.version}
-    script.
-        var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
-        var tooltipList = tooltipTriggerList.map(function(tooltipTriggerEl) {
-            return new bootstrap.Tooltip(tooltipTriggerEl)
-        })
+        script.
+            []
+            .slice
+            .call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            .map(function(tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            });
