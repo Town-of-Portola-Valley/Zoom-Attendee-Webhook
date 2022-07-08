@@ -15,6 +15,7 @@ const {
         DB_TABLE,
         DATETIME_CLEAR,
         TIME_SIMPLENOZERO,
+        TIME_SIMPLENOZERO_NOTZ,
         git_version,
       } = require('./helpers.js');
 
@@ -95,9 +96,9 @@ const participantProgressData = async (participant, meetingStartTime, scheduledD
         if(result.present) { // Add a tooltip
             const nextTime = sortedTimes[i + 1];
             if(nextTime) {
-                result.tooltip = `${t.time.toLocaleString(TIME_SIMPLENOZERO)} - ${nextTime.time.toLocaleString(TIME_SIMPLENOZERO)}`;
+                result.tooltip = `${t.time.setZone('America/Los_Angeles').toLocaleString(TIME_SIMPLENOZERO_NOTZ)} - ${nextTime.time.setZone('America/Los_Angeles').toLocaleString(TIME_SIMPLENOZERO)}`;
             } else {
-                result.tooltip = `Entered: ${t.time.toLocaleString(TIME_SIMPLENOZERO)}`;
+                result.tooltip = `Entered: ${t.time.setZone('America/Los_Angeles').toLocaleString(TIME_SIMPLENOZERO)}`;
             }
         }
         return result;

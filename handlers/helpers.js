@@ -34,6 +34,11 @@ const TIME_SIMPLENOZERO = {
     minute: 'numeric',
     timeZoneName: 'short',
 };
+
+const TIME_SIMPLENOZERO_NOTZ = {
+    hour: 'numeric',
+    minute: 'numeric',
+};
 // Stryker enable StringLiteral,ObjectLiteral
 
 // Export the constants
@@ -42,6 +47,7 @@ module.exports = {
     AUTHORIZATION_CHECK,
     DATETIME_CLEAR,
     TIME_SIMPLENOZERO,
+    TIME_SIMPLENOZERO_NOTZ,
     DB_TABLE,
     INTERNAL_SERVER_ERROR,
     KEEP_ALIVE,
