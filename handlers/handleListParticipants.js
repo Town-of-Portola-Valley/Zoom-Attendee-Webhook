@@ -137,7 +137,7 @@ const preProcessResults = (meetingID, items) => {
         MeetingTitle: 'This meeting does not exist',
         MeetingID: meetingID,
         MeetingStartTime: DateTime.now(),
-        MeetingDuration: Duration.fromObject({ minutes: 0 }),
+        MeetingDuration: Duration.fromObject({}), // 0 duration
         ParticipantCount: 0,
         results: {},
     } : {
