@@ -42,6 +42,7 @@ const sortJoinLeaveTimes = async (participant, meetingStartTime) => {
         return [...result, newItem];
     }, [{ time : meetingStartTime, state: 0 }]);
 };
+module.exports._sortJoinLeaveTimes = sortJoinLeaveTimes;
 
 // How wide (as a percentage) should the active part of the bar be, reserving the remainder for the "tail"
 const activeBarWidth = async (meetingStartTime, scheduledDuration, meetingEndTime) => {
@@ -55,6 +56,7 @@ const activeBarWidth = async (meetingStartTime, scheduledDuration, meetingEndTim
         return 95;
     }
 };
+module.exports._activeBarWidth = activeBarWidth;
 
 const durationToPercentage = async (duration, meetingStartTime, scheduledDuration, meetingEndTime) => {
     const activeWidth = await activeBarWidth(meetingStartTime, scheduledDuration, meetingEndTime);
@@ -68,6 +70,7 @@ const durationToPercentage = async (duration, meetingStartTime, scheduledDuratio
         return activeWidth * duration / nowSinceStart;
     }
 };
+module.exports._durationToPercentage = durationToPercentage;
 
 // For a participant, chunk up an array of percentage values and present/absent values for building
 // the bootstrap progress bar
@@ -100,8 +103,10 @@ const participantProgressData = async (participant, meetingStartTime, scheduledD
         return result;
     }));
 };
+module.exports._participantProgressData = participantProgressData;
 
-const fetchDateFromDynamo = async (meetingID) => {
+const fetchDataFromDynamo = async (meetingID) => {
+    // Stryker disable StringLiteral: This query is correct but won't be tested due to mocking
     const statement = `SELECT MeetingID,
                               MeetingTitle,
                               MeetingStartTime,
@@ -113,6 +118,7 @@ const fetchDateFromDynamo = async (meetingID) => {
                               LeaveTimes
                         FROM ${DB_TABLE}."MeetingID-ParticipationCount"
                         WHERE MeetingID = ${meetingID}`;
+    // Stryker enable StringLiteral
 
     let nextToken = undefined;
     let items = [];
@@ -124,13 +130,14 @@ const fetchDateFromDynamo = async (meetingID) => {
 
     return items;
 };
+module.exports._fetchDataFromDynamo = fetchDataFromDynamo;
 
-const preProcessResults = items => {
+const preProcessResults = (meetingID, items) => {
     return (items.length === 0) ? {
         MeetingTitle: 'This meeting does not exist',
-        MeetingID: event.pathParameters.meeting_id,
+        MeetingID: meetingID,
         MeetingStartTime: DateTime.now(),
-        MeetingDuration: Duration.fromObject({ minutes: 0 }),
+        MeetingDuration: Duration.fromObject({}), // 0 duration
         ParticipantCount: 0,
         results: {},
     } : {
@@ -143,18 +150,18 @@ const preProcessResults = items => {
             .map(AWS.DynamoDB.Converter.unmarshall)
             .map(i => ({
                 ...i,
-                MeetingStartTime: DateTime.fromISO(i.MeetingStartTime),
-                MeetingDuration: Duration.fromObject({ minutes: i.MeetingDuration }),
                 JoinTimes: _.map(i.JoinTimes && i.JoinTimes.values || [], DateTime.fromISO),
                 LeaveTimes: _.map(i.LeaveTimes && i.LeaveTimes.values || [], DateTime.fromISO),
                 JoinTime: i.ParticipationCount ? _(i.JoinTimes.values).sortBy().map(DateTime.fromISO).last() : DateTime.now(), // Find the latest join time
                 LeaveTime: i.ParticipationCount ? DateTime.now() : _(i.LeaveTimes.values).sortBy().map(DateTime.fromISO).last(),
-                ParticipationCount: i.ParticipationCount ? 1 : 0,
+                ParticipantOnline: i.ParticipationCount ? 'online' : 'offline',
             }))
-            .groupBy('ParticipationCount')
+            .map(i => _.omit(i, ['MeetingTitle', 'MeetingID', 'ParticipationCount', 'MeetingStartTime', 'MeetingDuration']))
+            .groupBy('ParticipantOnline')
             .value(),
     };
 };
+module.exports._preProcessResults = preProcessResults;
 
 module.exports.handleListParticipants = async (event) => {
     if(!event) {
@@ -170,12 +177,12 @@ module.exports.handleListParticipants = async (event) => {
     const acceptEncoding = event.headers && event.headers[ACCEPT_ENCODING];
     const meetingID = event.pathParameters.meeting_id;
 
-    const items = await fetchDateFromDynamo(meetingID);
+    const items = await fetchDataFromDynamo(meetingID);
 
-    const { MeetingTitle, MeetingID, MeetingStartTime, MeetingDuration, ParticipantCount, results } = preProcessResults(items);
+    const { MeetingTitle, MeetingID, MeetingStartTime, MeetingDuration, ParticipantCount, results } = preProcessResults(meetingID, items);
 
-    const sortedOnline = _(results['1']).sortBy('JoinTime').reverse().value();
-    const sortedOffline = _(results['0']).sortBy('LeaveTime').reverse().value();
+    const sortedOnline = _(results.online).sortBy('JoinTime').reverse().value();
+    const sortedOffline = _(results.offline).sortBy('LeaveTime').reverse().value();
 
     const MeetingEndTime = sortedOnline.length ? undefined : _.head(sortedOffline) && _.head(sortedOffline).LeaveTime || DateTime.now();
 

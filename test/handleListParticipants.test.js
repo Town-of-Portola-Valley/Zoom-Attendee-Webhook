@@ -1,21 +1,18 @@
 'use strict';
 
-const rewire = require('rewire');
 const { DateTime, Duration } = require('luxon');
 
 // Fish out private helper methods
-const hLP = rewire('../handlers/handleListParticipants');
-const sortJoinLeaveTimes = hLP.__get__('sortJoinLeaveTimes');
-const activeBarWidth = hLP.__get__('activeBarWidth');
-const durationToPercentage = hLP.__get__('durationToPercentage');
-const participantProgressData = hLP.__get__('participantProgressData');
+const hLP = require('../handlers/handleListParticipants');
+const sortJoinLeaveTimes = hLP._sortJoinLeaveTimes;
+const activeBarWidth = hLP._activeBarWidth;
+const durationToPercentage = hLP._durationToPercentage;
+const participantProgressData = hLP._participantProgressData;
+const preProcessResults = hLP._preProcessResults;
+
+const { dynamoDB } = require('../handlers/helpers');
 
 describe('listParticipants', () => {
-    beforeEach(() => {
-      jest.restoreAllMocks();
-      jest.clearAllMocks();
-    });
-
     describe('sortJoinLeaveTimes', () => {
         it('single join works', async () => {
             expect.assertions(1);
@@ -326,6 +323,102 @@ describe('listParticipants', () => {
                     percent: 0,
                 }),
             ]));
+        });
+    });
+
+    describe('fetchDataFromDynamo', () => {
+        beforeEach(() => {
+            jest.clearAllMocks();
+        });
+
+        it('single page', async () => {
+            expect.assertions(3);
+            jest.spyOn(dynamoDB, 'executeStatement')
+                .mockReturnValueOnce({
+                    promise: async () => ({
+                        Items: [1],
+                    }),
+                });
+            const results = await hLP._fetchDataFromDynamo(123);
+
+            expect(results).toStrictEqual([1]);
+            expect(dynamoDB.executeStatement).toHaveBeenCalledTimes(1);
+            expect(dynamoDB.executeStatement).toHaveBeenNthCalledWith(1, expect.objectContaining({
+                Statement: expect.stringContaining('SELECT'),
+                nextToken: undefined,
+            }));
+        });
+
+        it('multiple pages', async () => {
+            expect.assertions(4);
+            jest.spyOn(dynamoDB, 'executeStatement')
+                .mockReturnValueOnce({
+                    promise: async () => ({
+                        Items: [1],
+                        nextToken: 'abc',
+                    }),
+                })
+                .mockReturnValueOnce({
+                    promise: async () => ({
+                        Items: [2],
+                    }),
+                });
+            const results = await hLP._fetchDataFromDynamo(123);
+
+            expect(results).toStrictEqual([1, 2]);
+            expect(dynamoDB.executeStatement).toHaveBeenCalledTimes(2);
+            expect(dynamoDB.executeStatement).toHaveBeenNthCalledWith(1, expect.objectContaining({
+                Statement: expect.stringContaining('SELECT'),
+                nextToken: undefined,
+            }));
+            expect(dynamoDB.executeStatement).toHaveBeenNthCalledWith(2, expect.objectContaining({
+                Statement: expect.stringContaining('SELECT'),
+                nextToken: 'abc',
+            }));
+        });
+    });
+
+    describe('preProcessResults', () => {
+        it('no items', async () => {
+            expect.assertions(2);
+            const results = preProcessResults(123, []);
+
+            expect(results).toStrictEqual(expect.objectContaining({
+                MeetingTitle: expect.stringContaining('does not exist'),
+                MeetingID: 123,
+                MeetingStartTime: expect.any(DateTime),
+                MeetingDuration: expect.any(Duration),
+                ParticipantCount: 0,
+                results: {},
+            }));
+            expect(results.MeetingDuration.valueOf()).toBe(0);
+        });
+
+        it('one item', async () => {
+            expect.assertions(2);
+            const singleItemDynamo = require('./fixtures/single-item-dynamo.json');
+            const results = preProcessResults(123, [singleItemDynamo]);
+            expect(results).toStrictEqual(expect.objectContaining({
+                MeetingTitle: 'Meeting Title',
+                MeetingID: '123',
+                MeetingStartTime: expect.any(DateTime),
+                MeetingDuration: expect.any(Duration),
+                ParticipantCount: 1,
+                results: {
+                    offline: [
+                        {
+                            ParticipantName: 'Joe Blow',
+                            ParticipantEmail: 'someuser@example.com',
+                            JoinTimes: [expect.any(DateTime)],
+                            LeaveTimes: [expect.any(DateTime)],
+                            JoinTime: expect.any(DateTime),
+                            LeaveTime: expect.any(DateTime),
+                            ParticipantOnline: 'offline',
+                        },
+                    ],
+                },
+            }));
+            expect(results.MeetingDuration.valueOf()).toBeGreaterThan(0);
         });
     });
 });

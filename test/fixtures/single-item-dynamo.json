@@ -1,0 +1,33 @@
+{
+    "MeetingID": {
+        "N": "123"
+    },
+    "MeetingTitle": {
+        "S": "Meeting Title"
+    },
+    "MeetingStartTime": {
+        "S": "2022-01-01T00:00:00Z"
+    },
+    "MeetingDuration": {
+        "N": "60"
+    },
+    "ParticipantName": {
+        "S": "Joe Blow"
+    },
+    "ParticipantEmail": {
+        "S": "someuser@example.com"
+    },
+    "ParticipationCount": {
+        "N": "0"
+    },
+    "JoinTimes": {
+        "SS": [
+            "2022-01-01T00:00:00Z"
+        ]
+    },
+    "LeaveTimes": {
+        "SS": [
+            "2022-01-01T00:00:00Z"
+        ]
+    }
+}
