@@ -9,8 +9,9 @@ const activeBarWidth = hLP._activeBarWidth;
 const durationToPercentage = hLP._durationToPercentage;
 const participantProgressData = hLP._participantProgressData;
 const preProcessResults = hLP._preProcessResults;
+const { handleListParticipants } = hLP;
 
-const { dynamoDB } = require('../handlers/helpers');
+const { dynamoDB, makeHTMLResponse, INTERNAL_SERVER_ERROR } = require('../handlers/helpers');
 
 describe('listParticipants', () => {
     describe('sortJoinLeaveTimes', () => {
@@ -396,8 +397,8 @@ describe('listParticipants', () => {
 
         it('one item', async () => {
             expect.assertions(2);
-            const singleItemDynamo = require('./fixtures/single-item-dynamo.json');
-            const results = preProcessResults(123, [singleItemDynamo]);
+            const singleLeftItemDynamo = require('./fixtures/single-person-left-dynamo.json');
+            const results = preProcessResults(123, [singleLeftItemDynamo]);
             expect(results).toStrictEqual(expect.objectContaining({
                 MeetingTitle: 'Meeting Title',
                 MeetingID: '123',
@@ -419,6 +420,127 @@ describe('listParticipants', () => {
                 },
             }));
             expect(results.MeetingDuration.valueOf()).toBeGreaterThan(0);
+        });
+    });
+
+    describe('basics', () => {
+        it('should detect missing events', async () => {
+            expect.assertions(1);
+
+            const result = handleListParticipants();
+            const expected = await makeHTMLResponse(500, INTERNAL_SERVER_ERROR);
+
+            await expect(result).resolves.toStrictEqual(expected);
+        });
+
+        it('should respond correctly to keep-alive pings', async () => {
+            expect.assertions(3);
+
+            const event = require('./fixtures/keep-alive.json');
+            const result = handleListParticipants(event);
+
+            await expect(result).resolves.toStrictEqual(expect.objectContaining({
+                headers: expect.objectContaining({
+                    'X-Git-Version': expect.stringContaining('gitVersion'),
+                }),
+                statusCode: expect.any(Number),
+            }));
+            expect((await result).statusCode).toBeGreaterThanOrEqual(200);
+            expect((await result).statusCode).toBeLessThan(300);
+        });
+
+        it('should respond correctly when passed no headers', async () => {
+            expect.assertions(1);
+
+            const event = {};
+            const result = handleListParticipants(event);
+            const expected = await makeHTMLResponse(500, INTERNAL_SERVER_ERROR);
+
+            await expect(result).resolves.toStrictEqual(expected);
+        });
+
+        it('should respond correctly when passed headers but no pathParameters', async () => {
+            expect.assertions(1);
+
+            const event = { headers: {} };
+            const result = handleListParticipants(event);
+            const expected = await makeHTMLResponse(500, INTERNAL_SERVER_ERROR);
+
+            await expect(result).resolves.toStrictEqual(expected);
+        });
+
+        it('should respond correctly when passed pathParameters but no meetingID', async () => {
+            expect.assertions(1);
+
+            const event = { headers: {}, pathParameters: {} };
+            const result = handleListParticipants(event);
+            const expected = await makeHTMLResponse(500, INTERNAL_SERVER_ERROR);
+
+            await expect(result).resolves.toStrictEqual(expected);
+        });
+    });
+
+    describe('working request', () => {
+        it('non-existent meeting should display error page', async () => {
+            expect.assertions(1);
+            const event = { headers: {}, pathParameters: { meeting_id: 123 } };
+            jest.spyOn(dynamoDB, 'executeStatement')
+                .mockReturnValueOnce({
+                    promise: async () => ({
+                        Items: [],
+                    }),
+                });
+            const result = await handleListParticipants(event);
+            expect(result).toStrictEqual({
+                body: expect.stringContaining('meeting does not exist'),
+                statusCode: 200,
+                headers: expect.any(Object),
+                isBase64Encoded: false,
+            });
+        });
+
+        it('ended meeting should show users', async () => {
+            expect.assertions(3);
+            const event = { headers: {}, pathParameters: { meeting_id: 123 } };
+            const singleLeftItemDynamo = require('./fixtures/single-person-left-dynamo.json');
+            jest.spyOn(dynamoDB, 'executeStatement')
+                .mockReturnValueOnce({
+                    promise: async () => ({
+                        Items: [singleLeftItemDynamo],
+                    }),
+                });
+            const result = await handleListParticipants(event);
+            expect(result).toStrictEqual({
+                body: expect.stringContaining('Meeting Title'),
+                statusCode: 200,
+                headers: expect.any(Object),
+                isBase64Encoded: false,
+            });
+            expect(result.body).toStrictEqual(expect.stringContaining('Total participants: 1</h5>'));
+            expect(result.body).toStrictEqual(expect.stringMatching(/Online.*None.*Left the meeting.*Joe Blow/));
+        });
+
+        it('running meeting should show users', async () => {
+            expect.assertions(4);
+            const event = { headers: {}, pathParameters: { meeting_id: 123 } };
+            const singleLeftItemDynamo = require('./fixtures/single-person-left-dynamo.json');
+            const singleHereItemDynamo = require('./fixtures/single-person-still-in-dynamo.json');
+            jest.spyOn(dynamoDB, 'executeStatement')
+                .mockReturnValueOnce({
+                    promise: async () => ({
+                        Items: [singleLeftItemDynamo, singleHereItemDynamo],
+                    }),
+                });
+            const result = await handleListParticipants(event);
+            expect(result).toStrictEqual({
+                body: expect.stringContaining('Meeting Title'),
+                statusCode: 200,
+                headers: expect.any(Object),
+                isBase64Encoded: false,
+            });
+            expect(result.body).toStrictEqual(expect.stringContaining('Total participants: 2</h5>'));
+            expect(result.body).toStrictEqual(expect.stringMatching(/Online.*?Jane Doe/));
+            expect(result.body).toStrictEqual(expect.stringMatching(/Left the meeting.*?Joe Blow/));
         });
     });
 });
