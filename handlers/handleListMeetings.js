@@ -40,6 +40,7 @@ module.exports.handleListMeetings = async (event) => {
 
     const numDays = event.queryStringParameters && event.queryStringParameters.numDays && parseInt(event.queryStringParameters.numDays) || 7;
 
+    // Stryker disable StringLiteral: This query is correct but won't be tested due to mocking
     const statement = `SELECT MeetingID,
                               MeetingTitle,
                               MeetingStartTime,
@@ -48,6 +49,7 @@ module.exports.handleListMeetings = async (event) => {
                               LastUpdatedAt
                         FROM ${DB_TABLE}."MeetingID-LastUpdatedAt"
                         WHERE LastUpdatedAt > '${DateTime.utc().minus({ days: numDays }).toISO()}'`;
+    // Stryker enable StringLiteral
 
     let nextToken = undefined;
     let items = [];

@@ -106,6 +106,7 @@ const participantProgressData = async (participant, meetingStartTime, scheduledD
 module.exports._participantProgressData = participantProgressData;
 
 const fetchDataFromDynamo = async (meetingID) => {
+    // Stryker disable StringLiteral: This query is correct but won't be tested due to mocking
     const statement = `SELECT MeetingID,
                               MeetingTitle,
                               MeetingStartTime,
@@ -117,6 +118,7 @@ const fetchDataFromDynamo = async (meetingID) => {
                               LeaveTimes
                         FROM ${DB_TABLE}."MeetingID-ParticipationCount"
                         WHERE MeetingID = ${meetingID}`;
+    // Stryker enable StringLiteral
 
     let nextToken = undefined;
     let items = [];
