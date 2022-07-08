@@ -16,6 +16,7 @@ const {
         DATETIME_CLEAR,
         TIME_SIMPLENOZERO,
         TIME_SIMPLENOZERO_NOTZ,
+        TIMEZONE,
         git_version,
       } = require('./helpers.js');
 
@@ -96,9 +97,9 @@ const participantProgressData = async (participant, meetingStartTime, scheduledD
         if(result.present) { // Add a tooltip
             const nextTime = sortedTimes[i + 1];
             if(nextTime) {
-                result.tooltip = `${t.time.setZone('America/Los_Angeles').toLocaleString(TIME_SIMPLENOZERO_NOTZ)} - ${nextTime.time.setZone('America/Los_Angeles').toLocaleString(TIME_SIMPLENOZERO)}`;
+                result.tooltip = `${t.time.setZone(TIMEZONE).toLocaleString(TIME_SIMPLENOZERO_NOTZ)} - ${nextTime.time.setZone(TIMEZONE).toLocaleString(TIME_SIMPLENOZERO)}`;
             } else {
-                result.tooltip = `Entered: ${t.time.setZone('America/Los_Angeles').toLocaleString(TIME_SIMPLENOZERO)}`;
+                result.tooltip = `Entered: ${t.time.setZone(TIMEZONE).toLocaleString(TIME_SIMPLENOZERO)}`;
             }
         }
         return result;
@@ -175,8 +176,20 @@ module.exports.handleListParticipants = async (event) => {
         return makeEmptyResponse(204);
     }
 
+    if (!event.headers) {
+        logger.error('No headers were in the event', event);
+
+        return makeHTMLResponse(500, INTERNAL_SERVER_ERROR);
+    }
+
     const acceptEncoding = event.headers && event.headers[ACCEPT_ENCODING];
-    const meetingID = event.pathParameters.meeting_id;
+    const meetingID = event.pathParameters && event.pathParameters.meeting_id;
+
+    if(!meetingID) {
+        logger.error('The meeting ID is missing from the path somehow', event);
+
+        return makeHTMLResponse(500, INTERNAL_SERVER_ERROR);
+    }
 
     const items = await fetchDataFromDynamo(meetingID);
 
@@ -198,6 +211,7 @@ module.exports.handleListParticipants = async (event) => {
 
     const response = listParticipantsTemplate({
         DateTime,
+        TIMEZONE,
         page: { version: (await git_version)[1].gitVersion },
         meeting: {
             MeetingTitle,

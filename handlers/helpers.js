@@ -12,6 +12,7 @@ const deflate = promisify(zlib.deflate);
 const AUTHORIZATION_CHECK = process.env.ZOOM_AUTHORIZATION_CODE;
 const ORGANIZATION_NAME   = process.env.ORGANIZATION_NAME;
 const DB_TABLE            = process.env.DB_TABLE;
+const TIMEZONE            = process.env.TIMEZONE;
 
 // Stryker disable StringLiteral,ObjectLiteral: Ignore these top-level constants for mutation testing
 const NO_EVENT_RECEIVED = 'No event was received';
@@ -53,6 +54,7 @@ module.exports = {
     KEEP_ALIVE,
     NO_EVENT_RECEIVED,
     ORGANIZATION_NAME,
+    TIMEZONE,
 };
 
 const DynamoDB = require('aws-sdk/clients/dynamodb');

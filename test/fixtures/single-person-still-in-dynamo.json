@@ -1,0 +1,28 @@
+{
+    "MeetingID": {
+        "N": "123"
+    },
+    "MeetingTitle": {
+        "S": "Meeting Title"
+    },
+    "MeetingStartTime": {
+        "S": "2022-01-01T00:00:00Z"
+    },
+    "MeetingDuration": {
+        "N": "60"
+    },
+    "ParticipantName": {
+        "S": "Jane Doe"
+    },
+    "ParticipantEmail": {
+        "S": "otheruser@example.com"
+    },
+    "ParticipationCount": {
+        "N": "1"
+    },
+    "JoinTimes": {
+        "SS": [
+            "2022-01-01T00:00:00Z"
+        ]
+    }
+}

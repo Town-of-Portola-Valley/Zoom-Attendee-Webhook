@@ -1,9 +1,10 @@
 'use strict';
 
+process.env.TIMEZONE = 'America/Los_Angeles';
 const _ = require('lodash');
 const { DateTime } = require('luxon');
 const path = require('node:path');
-const { makeEmptyResponse, makeHTMLResponse, DATETIME_CLEAR, TIME_SIMPLENOZERO, TIME_SIMPLENOZERO_NOTZ } = require('../handlers/helpers');
+const { makeEmptyResponse, makeHTMLResponse, DATETIME_CLEAR, TIME_SIMPLENOZERO, TIME_SIMPLENOZERO_NOTZ, TIMEZONE } = require('../handlers/helpers');
 
 const CONTENT_ENCODING = 'Content-Encoding';
 
@@ -58,21 +59,21 @@ describe('helpers', () => {
 
     it('TIME_SIMPLENOZERO_NOTZ', async () => {
         expect.assertions(1);
-        const result = DateTime.fromObject({ hour: 9, minute: 37 }, { zone: 'America/Los_Angeles' }).toLocaleString(TIME_SIMPLENOZERO_NOTZ);
+        const result = DateTime.fromObject({ hour: 9, minute: 37 }, { zone: TIMEZONE }).toLocaleString(TIME_SIMPLENOZERO_NOTZ);
 
         expect(result).toBe('9:37 AM');
     });
 
     it('TIME_SIMPLENOZERO', async () => {
         expect.assertions(1);
-        const result = DateTime.fromObject({ hour: 9, minute: 37 }, { zone: 'America/Los_Angeles' }).toLocaleString(TIME_SIMPLENOZERO);
+        const result = DateTime.fromObject({ hour: 9, minute: 37 }, { zone: TIMEZONE }).toLocaleString(TIME_SIMPLENOZERO);
 
         expect(result).toBe('9:37 AM PDT');
     });
 
     it('DATETIME_CLEAR', async () => {
         expect.assertions(1);
-        const result = DateTime.fromObject({ year: 2022, month: 7, day: 5, hour: 9, minute: 37 }, { zone: 'America/Los_Angeles' }).toLocaleString(DATETIME_CLEAR);
+        const result = DateTime.fromObject({ year: 2022, month: 7, day: 5, hour: 9, minute: 37 }, { zone: TIMEZONE }).toLocaleString(DATETIME_CLEAR);
 
         expect(result).toBe('Tue, Jul 5, 9:37 AM PDT');
     });

@@ -1,6 +1,6 @@
 mixin time(t)
     // Get things in the correct timezone
-    - t=t.setZone('America/Los_Angeles')
+    - t=t.setZone(TIMEZONE)
     span.time
         |
         | #{t.toLocaleString(DateTime.DATETIME_CLEAR)}

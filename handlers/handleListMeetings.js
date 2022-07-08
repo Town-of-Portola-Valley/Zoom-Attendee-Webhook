@@ -15,6 +15,7 @@ const {
         DB_TABLE,
         DATETIME_CLEAR,
         ORGANIZATION_NAME,
+        TIMEZONE,
         git_version,
       } = require('./helpers.js');
 
@@ -80,6 +81,7 @@ module.exports.handleListMeetings = async (event) => {
 
     const response = listMeetingsTemplate({
         DateTime,
+        TIMEZONE,
         page: { title: `${ORGANIZATION_NAME} Webinars`, version: (await git_version)[1].gitVersion },
         meetings: [
             {
