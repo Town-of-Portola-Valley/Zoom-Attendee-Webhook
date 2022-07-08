@@ -17,7 +17,7 @@ mixin participant(p, endTime)
     div.card(class='h-100')
         div(class='card-body')
             h5(class='card-title') #{p.ParticipantName}
-            +timeline(p.progressData, endTime)
+            +timeline(p.progressData, endTime.setZone('America/Los_Angeles'))
             p(class='small fw-lighter card-subtitle text-wrap mt-2 mb-0')
                 if p.ParticipantOnline == 'online'
                     | Joined:

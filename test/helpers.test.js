@@ -3,7 +3,7 @@
 const _ = require('lodash');
 const { DateTime } = require('luxon');
 const path = require('node:path');
-const { makeEmptyResponse, makeHTMLResponse, DATETIME_CLEAR, TIME_SIMPLENOZERO } = require('../handlers/helpers');
+const { makeEmptyResponse, makeHTMLResponse, DATETIME_CLEAR, TIME_SIMPLENOZERO, TIME_SIMPLENOZERO_NOTZ } = require('../handlers/helpers');
 
 const CONTENT_ENCODING = 'Content-Encoding';
 
@@ -54,6 +54,13 @@ describe('helpers', () => {
                 })
             ]));
         });
+    });
+
+    it('TIME_SIMPLENOZERO_NOTZ', async () => {
+        expect.assertions(1);
+        const result = DateTime.fromObject({ hour: 9, minute: 37 }, { zone: 'America/Los_Angeles' }).toLocaleString(TIME_SIMPLENOZERO_NOTZ);
+
+        expect(result).toBe('9:37 AM');
     });
 
     it('TIME_SIMPLENOZERO', async () => {
