@@ -2,49 +2,32 @@
     "MeetingID": {
         "N": "123"
     },
-    "ParticipantID": {
-        "S": "participant id"
+    "MeetingTitle": {
+        "S": "Meeting Title"
     },
-    "EventTimestamps": {
-        "NS": [
-            "1655767568344",
-            "1655787464356"
-        ]
+    "MeetingStartTime": {
+        "S": "2022-01-01T00:00:00Z"
+    },
+    "MeetingDuration": {
+        "N": "60"
+    },
+    "ParticipantName": {
+        "S": "Joe Blow"
+    },
+    "ParticipantEmail": {
+        "S": "someuser@example.com"
+    },
+    "ParticipationCount": {
+        "N": "0"
     },
     "JoinTimes": {
         "SS": [
             "2022-01-01T00:00:00Z"
         ]
     },
-    "LastUpdatedAt": {
-        "S": "2022-01-01T00:00:00Z"
-    },
     "LeaveTimes": {
         "SS": [
             "2022-01-01T00:00:00Z"
         ]
-    },
-    "MeetingDuration": {
-        "N": "60"
-    },
-    "MeetingStartTime": {
-        "S": "2022-01-01T00:00:00Z"
-    },
-    "MeetingTitle": {
-        "S": "Meeting Title"
-    },
-    "ParticipantEmail": {
-        "S": "someuser@example.com"
-    },
-    "ParticipantName": {
-        "S": "Joe Blow"
-    },
-    "ParticipantSessionIDs": {
-        "NS": [
-            "16813056"
-        ]
-    },
-    "ParticipationCount": {
-        "N": "0"
     }
 }
