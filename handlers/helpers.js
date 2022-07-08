@@ -75,9 +75,10 @@ module.exports.makeHTMLResponse = async (statusCode, body, acceptEncoding) => {
     if(/\bbr\b/.test(acceptEncoding)) {
         // Stryker disable ObjectLiteral: Do not worry about brotli params
         convertedBody = (await brotli(body, {
+            chunkSize: 1024 * 1024,
             params: {
                 [zlib.constants.BROTLI_PARAM_MODE]: zlib.constants.BROTLI_MODE_TEXT,
-                [zlib.constants.BROTLI_PARAM_QUALITY]: 4,
+                [zlib.constants.BROTLI_PARAM_QUALITY]: 6,
                 [zlib.constants.BROTLI_PARAM_SIZE_HINT]: body.length,
             },
         })).toString('base64');
