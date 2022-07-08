@@ -150,15 +150,14 @@ const preProcessResults = (meetingID, items) => {
             .map(AWS.DynamoDB.Converter.unmarshall)
             .map(i => ({
                 ...i,
-                MeetingStartTime: DateTime.fromISO(i.MeetingStartTime),
-                MeetingDuration: Duration.fromObject({ minutes: i.MeetingDuration }),
                 JoinTimes: _.map(i.JoinTimes && i.JoinTimes.values || [], DateTime.fromISO),
                 LeaveTimes: _.map(i.LeaveTimes && i.LeaveTimes.values || [], DateTime.fromISO),
                 JoinTime: i.ParticipationCount ? _(i.JoinTimes.values).sortBy().map(DateTime.fromISO).last() : DateTime.now(), // Find the latest join time
                 LeaveTime: i.ParticipationCount ? DateTime.now() : _(i.LeaveTimes.values).sortBy().map(DateTime.fromISO).last(),
-                ParticipationCount: i.ParticipationCount ? 1 : 0,
+                ParticipantOnline: i.ParticipationCount ? 'online' : 'offline',
             }))
-            .groupBy('ParticipationCount')
+            .map(i => _.omit(i, ['MeetingTitle', 'MeetingID', 'ParticipationCount', 'MeetingStartTime', 'MeetingDuration']))
+            .groupBy('ParticipantOnline')
             .value(),
     };
 };
@@ -182,8 +181,8 @@ module.exports.handleListParticipants = async (event) => {
 
     const { MeetingTitle, MeetingID, MeetingStartTime, MeetingDuration, ParticipantCount, results } = preProcessResults(meetingID, items);
 
-    const sortedOnline = _(results['1']).sortBy('JoinTime').reverse().value();
-    const sortedOffline = _(results['0']).sortBy('LeaveTime').reverse().value();
+    const sortedOnline = _(results.online).sortBy('JoinTime').reverse().value();
+    const sortedOffline = _(results.offline).sortBy('LeaveTime').reverse().value();
 
     const MeetingEndTime = sortedOnline.length ? undefined : _.head(sortedOffline) && _.head(sortedOffline).LeaveTime || DateTime.now();
 

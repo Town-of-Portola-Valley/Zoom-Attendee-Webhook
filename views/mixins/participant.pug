@@ -19,7 +19,7 @@ mixin participant(p, endTime)
             h5(class='card-title') #{p.ParticipantName}
             +timeline(p.progressData, endTime)
             p(class='small fw-lighter card-subtitle text-wrap mt-2 mb-0')
-                if p.ParticipationCount
+                if p.ParticipantOnline == 'online'
                     | Joined:
                     +time(p.JoinTime)
                 else

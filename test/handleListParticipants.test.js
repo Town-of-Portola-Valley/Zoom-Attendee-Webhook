@@ -387,17 +387,17 @@ describe('listParticipants', () => {
                 MeetingDuration: expect.any(Object),
                 ParticipantCount: 1,
                 results: {
-                    '0': expect.arrayContaining([
-                        expect.objectContaining({
-                            ParticipantID: 'participant id',
+                    offline: [
+                        {
                             ParticipantName: 'Joe Blow',
-                            JoinTimes: expect.any(Array),
-                            LeaveTimes: expect.any(Array),
-                            JoinTime: expect.any(Object),
-                            LeaveTime: expect.any(Object),
-                            ParticipationCount: 0,
-                        }),
-                    ]),
+                            ParticipantEmail: 'someuser@example.com',
+                            JoinTimes: [expect.any(DateTime)],
+                            LeaveTimes: [expect.any(DateTime)],
+                            JoinTime: expect.any(DateTime),
+                            LeaveTime: expect.any(DateTime),
+                            ParticipantOnline: 'offline',
+                        },
+                    ],
                 },
             }));
         });
