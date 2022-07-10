@@ -500,7 +500,7 @@ describe('listParticipants', () => {
         });
 
         it('ended meeting should show users', async () => {
-            expect.assertions(3);
+            expect.assertions(4);
             const event = { headers: {}, pathParameters: { meeting_id: 123 } };
             const singleLeftItemDynamo = require('./fixtures/single-person-left-dynamo.json');
             jest.spyOn(dynamoDB, 'executeStatement')
@@ -516,12 +516,13 @@ describe('listParticipants', () => {
                 headers: expect.any(Object),
                 isBase64Encoded: false,
             });
-            expect(result.body).toStrictEqual(expect.stringContaining('Total participants: 1</h5>'));
+            expect(result.body).toStrictEqual(expect.stringContaining('Total participants: 1'));
+            expect(result.body).toStrictEqual(expect.stringContaining('Ended:'));
             expect(result.body).toStrictEqual(expect.stringMatching(/Online.*None.*Left the meeting.*Joe Blow/));
         });
 
         it('running meeting should show users', async () => {
-            expect.assertions(4);
+            expect.assertions(5);
             const event = { headers: {}, pathParameters: { meeting_id: 123 } };
             const singleLeftItemDynamo = require('./fixtures/single-person-left-dynamo.json');
             const singleHereItemDynamo = require('./fixtures/single-person-still-in-dynamo.json');
@@ -538,9 +539,32 @@ describe('listParticipants', () => {
                 headers: expect.any(Object),
                 isBase64Encoded: false,
             });
-            expect(result.body).toStrictEqual(expect.stringContaining('Total participants: 2</h5>'));
+            expect(result.body).toStrictEqual(expect.stringContaining('Total participants: 2'));
+            expect(result.body).toStrictEqual(expect.stringContaining('Currently: 1 participant'));
             expect(result.body).toStrictEqual(expect.stringMatching(/Online.*?Jane Doe/));
             expect(result.body).toStrictEqual(expect.stringMatching(/Left the meeting.*?Joe Blow/));
         });
+    });
+
+    it('meeting should with leaver no joins should work', async () => {
+        expect.assertions(4);
+        const event = { headers: {}, pathParameters: { meeting_id: 123 } };
+        const singleLeftNoJoinItemDynamo = require('./fixtures/single-person-left-no-join-dynamo.json');
+        jest.spyOn(dynamoDB, 'executeStatement')
+            .mockReturnValueOnce({
+                promise: async () => ({
+                    Items: [singleLeftNoJoinItemDynamo],
+                }),
+            });
+        const result = await handleListParticipants(event);
+        expect(result).toStrictEqual({
+            body: expect.stringContaining('Meeting Title'),
+            statusCode: 200,
+            headers: expect.any(Object),
+            isBase64Encoded: false,
+        });
+        expect(result.body).toStrictEqual(expect.stringContaining('Total participants: 1'));
+        expect(result.body).toStrictEqual(expect.stringContaining('Ended:'));
+        expect(result.body).toStrictEqual(expect.stringMatching(/Left the meeting.*?Joe Blow/));
     });
 });
