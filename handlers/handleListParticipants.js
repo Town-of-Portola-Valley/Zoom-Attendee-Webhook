@@ -176,7 +176,7 @@ module.exports.handleListParticipants = async (event) => {
         return makeEmptyResponse(204);
     }
 
-    if (!event.headers) {
+    if(!event.headers) {
         logger.error('No headers were in the event', event);
 
         return makeHTMLResponse(500, INTERNAL_SERVER_ERROR);

@@ -1,0 +1,22 @@
+[
+    {
+        "MeetingID": {
+            "N": "123"
+        },
+        "MeetingTitle": {
+            "S": "Meeting Title"
+        },
+        "MeetingStartTime": {
+            "S": "2022-01-01T00:00:00Z"
+        },
+        "MeetingDuration": {
+            "N": "60"
+        },
+        "ParticipationCount": {
+            "N": "0"
+        },
+        "LastUpdatedAt": {
+            "S": "2022-01-01T00:00:00Z"
+        }
+    }
+]

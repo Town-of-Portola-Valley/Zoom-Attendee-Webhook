@@ -26,21 +26,7 @@ const AWS = require('aws-sdk');
 
 const listMeetingsTemplate = pug.compileFile('views/list-meetings.pug');
 
-module.exports.handleListMeetings = async (event) => {
-    if(!event) {
-        logger.error(NO_EVENT_RECEIVED);
-
-        return makeHTMLResponse(500, INTERNAL_SERVER_ERROR);
-    }
-
-    if(event[KEEP_ALIVE]) {
-        return makeEmptyResponse(204);
-    }
-
-    const acceptEncoding = event.headers && event.headers[ACCEPT_ENCODING];
-
-    const numDays = event.queryStringParameters && event.queryStringParameters.numDays && parseInt(event.queryStringParameters.numDays) || 7;
-
+const fetchDataFromDynamo = async (numDays) => {
     // Stryker disable StringLiteral: This query is correct but won't be tested due to mocking
     const statement = `SELECT MeetingID,
                               MeetingTitle,
@@ -60,24 +46,57 @@ module.exports.handleListMeetings = async (event) => {
         nextToken = raw.nextToken;
     } while(nextToken);
 
-    const results = _(items)
-                    .map(AWS.DynamoDB.Converter.unmarshall)
-                    .reduce((sum, i) => {
-                        const previous_last_updated = sum[i.MeetingID] && sum[i.MeetingID].LastUpdatedAt || DateTime.now().minus({ years: 1 });
-                        const updated = {
-                            ...sum[i.MeetingID],
-                            MeetingID: i.MeetingID,
-                            MeetingTitle: i.MeetingTitle,
-                            MeetingStartTime: DateTime.fromISO(i.MeetingStartTime),
-                            MeetingDuration: Duration.fromObject({ minutes: i.MeetingDuration }),
-                            LastUpdatedAt: DateTime.max(previous_last_updated, DateTime.fromISO(i.LastUpdatedAt)),
-                        };
-                        updated.ParticipationCount = (updated.ParticipationCount || 0) + i.ParticipationCount;
-                        sum[i.MeetingID] = updated;
-                        return { ...sum,
-                            [`${i.MeetingID}`]: updated,
-                        };
-                    }, {});
+    return items;
+};
+module.exports._fetchDataFromDynamo = fetchDataFromDynamo;
+
+const preProcessResults = (items) => {
+    return _(items)
+        .map(AWS.DynamoDB.Converter.unmarshall)
+        .reduce((sum, i) => {
+            const previous_last_updated = sum[i.MeetingID] && sum[i.MeetingID].LastUpdatedAt || DateTime.now().minus({ years: 1 });
+            const updated = {
+                ...sum[i.MeetingID],
+                MeetingID: i.MeetingID,
+                MeetingTitle: i.MeetingTitle,
+                MeetingStartTime: DateTime.fromISO(i.MeetingStartTime),
+                MeetingDuration: Duration.fromObject({ minutes: i.MeetingDuration }),
+                LastUpdatedAt: DateTime.max(previous_last_updated, DateTime.fromISO(i.LastUpdatedAt)),
+            };
+            updated.ParticipationCount = (updated.ParticipationCount || 0) + i.ParticipationCount;
+            sum[i.MeetingID] = updated;
+            return {
+                ...sum,
+                [`${i.MeetingID}`]: updated,
+            };
+        }, {});
+};
+module.exports._preProcessResults = preProcessResults;
+
+module.exports.handleListMeetings = async (event) => {
+    if(!event) {
+        logger.error(NO_EVENT_RECEIVED);
+
+        return makeHTMLResponse(500, INTERNAL_SERVER_ERROR);
+    }
+
+    if(event[KEEP_ALIVE]) {
+        return makeEmptyResponse(204);
+    }
+
+    if(!event.headers) {
+        logger.error('No headers were in the event', event);
+
+        return makeHTMLResponse(500, INTERNAL_SERVER_ERROR);
+    }
+
+    const acceptEncoding = event.headers && event.headers[ACCEPT_ENCODING];
+
+    const numDays = event.queryStringParameters && event.queryStringParameters.numDays && parseInt(event.queryStringParameters.numDays) || 7;
+
+    const items = await fetchDataFromDynamo(numDays);
+
+    const results = await preProcessResults(items);
 
     const response = listMeetingsTemplate({
         DateTime,
