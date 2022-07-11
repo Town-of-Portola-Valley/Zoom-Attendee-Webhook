@@ -27,7 +27,7 @@ const AWS = require('aws-sdk');
 const listMeetingsTemplate = pug.compileFile('views/list-meetings.pug');
 
 const fetchDataFromDynamo = async (numDays) => {
-    // Stryker disable StringLiteral: This query is correct but won't be tested due to mocking
+    // Stryker disable StringLiteral,ObjectLiteral: This query is correct but won't be tested due to mocking
     const statement = `SELECT MeetingID,
                               MeetingTitle,
                               MeetingStartTime,
@@ -36,7 +36,7 @@ const fetchDataFromDynamo = async (numDays) => {
                               LastUpdatedAt
                         FROM ${DB_TABLE}."MeetingID-LastUpdatedAt"
                         WHERE LastUpdatedAt > '${DateTime.utc().minus({ days: numDays }).toISO()}'`;
-    // Stryker enable StringLiteral
+    // Stryker enable StringLiteral,ObjectLiteral
 
     let nextToken = undefined;
     let items = [];
