@@ -7,5 +7,6 @@ const config = {
   coverageAnalysis: 'perTest',
   mutate: ['handlers/*.js'],
   thresholds: { high: 80, low: 50, 'break': null },
+  cleanTempDir: true,
 };
 export default config;
