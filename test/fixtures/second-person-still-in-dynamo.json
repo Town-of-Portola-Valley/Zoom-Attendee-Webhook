@@ -12,20 +12,15 @@
         "N": "60"
     },
     "ParticipantName": {
-        "S": "Joe Blow"
+        "S": "Anne Blow"
     },
     "ParticipantEmail": {
-        "S": "someuser@example.com"
+        "S": "anne@example.com"
     },
     "ParticipationCount": {
-        "N": "0"
+        "N": "1"
     },
     "JoinTimes": {
-        "SS": [
-            "2022-01-01T00:00:00Z"
-        ]
-    },
-    "LeaveTimes": {
         "SS": [
             "2022-01-01T00:00:01Z"
         ]

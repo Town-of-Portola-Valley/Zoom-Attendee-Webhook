@@ -1,6 +1,7 @@
 'use strict';
 
 const { DateTime, Duration } = require('luxon');
+const { inspect } = require('node:util');
 
 // Fish out private helper methods
 const hLP = require('../handlers/handleListParticipants');
@@ -10,10 +11,15 @@ const durationToPercentage = hLP._durationToPercentage;
 const participantProgressData = hLP._participantProgressData;
 const preProcessResults = hLP._preProcessResults;
 const { handleListParticipants } = hLP;
+const logger = require('@hughescr/logger').logger;
 
-const { dynamoDB, makeHTMLResponse, INTERNAL_SERVER_ERROR } = require('../handlers/helpers');
+const { dynamoDB, makeHTMLResponse, INTERNAL_SERVER_ERROR, DATETIME_CLEAR, TIMEZONE } = require('../handlers/helpers');
 
 describe('listParticipants', () => {
+    beforeEach(() => {
+        jest.clearAllMocks();
+    });
+
     describe('sortJoinLeaveTimes', () => {
         it('single join works', async () => {
             expect.assertions(1);
@@ -165,13 +171,13 @@ describe('listParticipants', () => {
             expect.assertions(1);
 
             const now = DateTime.now();
-            const longAgo = now.minus({ hours: 95 });
-            const ninetyFivePercentTime = Duration.fromObject({ hours: 95 });
-            const longTime = Duration.fromObject({ hours: 100 });
-            const result = await durationToPercentage(ninetyFivePercentTime,
-                                                  longAgo,
-                                                  longTime,
-                                                  undefined);
+            const ninetyFiveHoursAgo = now.minus({ hours: 95 });
+            const ninetyFiveHours = Duration.fromObject({ hours: 95 });
+            const oneHundredHours = Duration.fromObject({ hours: 100 });
+            const result = await durationToPercentage(ninetyFiveHours, // actual duration
+                                                  ninetyFiveHoursAgo,  // Meeting start time
+                                                  oneHundredHours,     // Scheduled duration
+                                                  undefined);          // Meeting end time
             expect(result).toBeCloseTo(95);
         });
 
@@ -238,32 +244,34 @@ describe('listParticipants', () => {
             ]));
         });
 
-        it('join then leave', async () => {
+        it('join then leave with meeting over', async () => {
             expect.assertions(1);
 
-            const oneHourAgo = DateTime.now().minus({ hours: 1 });
-            const twoHoursAgo = DateTime.now().minus({ hours: 2 });
+            const now = DateTime.now();
+            const oneHourAgo = now.minus({ hours: 1 });
+            const twoHoursAgo = now.minus({ hours: 2 });
+            const threeHoursAgo = now.minus({ hours: 3 });
             const result = await participantProgressData({
-                                                            JoinTimes: [twoHoursAgo],
-                                                            LeaveTimes: [oneHourAgo],
-                                                         },
-                                                         twoHoursAgo,
-                                                         Duration.fromObject({ hours: 2 }),
-                                                         undefined);
+                JoinTimes: [threeHoursAgo],
+                LeaveTimes: [twoHoursAgo],
+            },
+                threeHoursAgo,
+                Duration.fromObject({ hours: 2 }),
+                oneHourAgo);
             expect(result).toStrictEqual(expect.arrayContaining([
-                expect.objectContaining({
+                {
                     present: false,
                     percent: 0,
-                }),
-                expect.objectContaining({
+                },
+                {
                     present: true,
-                    percent: expect.closeTo(1 / 2 * 95),
+                    percent: expect.closeTo(1 / 2 * 99),
                     tooltip: expect.stringMatching(/\d?\d:\d\d [AP]M - \d?\d:\d\d [AP]M P[SD]T/),
-                }),
-                expect.objectContaining({
+                },
+                {
                     present: false,
-                    percent: expect.closeTo(1 / 2 * 95),
-                }),
+                    percent: expect.closeTo(1 / 2 * 99),
+                },
             ]));
         });
 
@@ -328,10 +336,6 @@ describe('listParticipants', () => {
     });
 
     describe('fetchDataFromDynamo', () => {
-        beforeEach(() => {
-            jest.clearAllMocks();
-        });
-
         it('single page', async () => {
             expect.assertions(3);
             jest.spyOn(dynamoDB, 'executeStatement')
@@ -344,10 +348,10 @@ describe('listParticipants', () => {
 
             expect(results).toStrictEqual([1]);
             expect(dynamoDB.executeStatement).toHaveBeenCalledTimes(1);
-            expect(dynamoDB.executeStatement).toHaveBeenNthCalledWith(1, expect.objectContaining({
+            expect(dynamoDB.executeStatement).toHaveBeenNthCalledWith(1, {
                 Statement: expect.stringContaining('SELECT'),
                 nextToken: undefined,
-            }));
+            });
         });
 
         it('multiple pages', async () => {
@@ -399,7 +403,7 @@ describe('listParticipants', () => {
             expect.assertions(2);
             const singleLeftItemDynamo = require('./fixtures/single-person-left-dynamo.json');
             const results = preProcessResults(123, [singleLeftItemDynamo]);
-            expect(results).toStrictEqual(expect.objectContaining({
+            expect(results).toStrictEqual({
                 MeetingTitle: 'Meeting Title',
                 MeetingID: '123',
                 MeetingStartTime: expect.any(DateTime),
@@ -418,8 +422,64 @@ describe('listParticipants', () => {
                         },
                     ],
                 },
-            }));
+            });
             expect(results.MeetingDuration.valueOf()).toBeGreaterThan(0);
+        });
+
+        it('one person no join time', async () => {
+            expect.assertions(3);
+            const singleLeftItemDynamo = require('./fixtures/single-person-leave-no-join-dynamo.json');
+            const results = preProcessResults(123, [singleLeftItemDynamo]);
+            expect(results).toStrictEqual({
+                MeetingTitle: 'Meeting Title',
+                MeetingID: '123',
+                MeetingStartTime: expect.any(DateTime),
+                MeetingDuration: expect.any(Duration),
+                ParticipantCount: 1,
+                results: {
+                    offline: [
+                        {
+                            ParticipantName: 'Jane Doe',
+                            ParticipantEmail: 'otheruser@example.com',
+                            JoinTimes: [],
+                            LeaveTimes: [expect.any(DateTime)],
+                            JoinTime: expect.any(DateTime),
+                            LeaveTime: expect.any(DateTime),
+                            ParticipantOnline: 'offline',
+                        },
+                    ],
+                },
+            });
+            expect(results.MeetingDuration.valueOf()).toBeGreaterThan(0);
+            expect(results.results.offline[0].JoinTime.diffNow().valueOf()).toBeLessThan(100);
+        });
+
+        it('one person no leave time', async () => {
+            expect.assertions(3);
+            const singleLeftItemDynamo = require('./fixtures/single-person-still-in-dynamo.json');
+            const results = preProcessResults(123, [singleLeftItemDynamo]);
+            expect(results).toStrictEqual({
+                MeetingTitle: 'Meeting Title',
+                MeetingID: '123',
+                MeetingStartTime: expect.any(DateTime),
+                MeetingDuration: expect.any(Duration),
+                ParticipantCount: 1,
+                results: {
+                    online: [
+                        {
+                            ParticipantName: 'Jane Doe',
+                            ParticipantEmail: 'otheruser@example.com',
+                            JoinTimes: [expect.any(DateTime)],
+                            LeaveTimes: [],
+                            JoinTime: expect.any(DateTime),
+                            LeaveTime: expect.any(DateTime),
+                            ParticipantOnline: 'online',
+                        },
+                    ],
+                },
+            });
+            expect(results.MeetingDuration.valueOf()).toBeGreaterThan(0);
+            expect(results.results.online[0].LeaveTime.diffNow().valueOf()).toBeLessThan(100);
         });
     });
 
@@ -450,33 +510,42 @@ describe('listParticipants', () => {
         });
 
         it('should respond correctly when passed no headers', async () => {
-            expect.assertions(1);
+            expect.assertions(3);
+            jest.spyOn(logger, 'error');
 
             const event = {};
-            const result = handleListParticipants(event);
+            const result = await handleListParticipants(event);
             const expected = await makeHTMLResponse(500, INTERNAL_SERVER_ERROR);
 
-            await expect(result).resolves.toStrictEqual(expected);
+            expect(result).toStrictEqual(expected);
+            expect(logger.error).toHaveBeenCalledTimes(1);
+            expect(logger.error).toHaveBeenNthCalledWith(1, 'No headers were in the event', event);
         });
 
         it('should respond correctly when passed headers but no pathParameters', async () => {
-            expect.assertions(1);
+            expect.assertions(3);
+            jest.spyOn(logger, 'error');
 
             const event = { headers: {} };
-            const result = handleListParticipants(event);
+            const result = await handleListParticipants(event);
             const expected = await makeHTMLResponse(500, INTERNAL_SERVER_ERROR);
 
-            await expect(result).resolves.toStrictEqual(expected);
+            expect(result).toStrictEqual(expected);
+            expect(logger.error).toHaveBeenCalledTimes(1);
+            expect(logger.error).toHaveBeenNthCalledWith(1, 'The meeting ID is missing from the path somehow', event);
         });
 
         it('should respond correctly when passed pathParameters but no meetingID', async () => {
-            expect.assertions(1);
+            expect.assertions(3);
+            jest.spyOn(logger, 'error');
 
             const event = { headers: {}, pathParameters: {} };
-            const result = handleListParticipants(event);
+            const result = await handleListParticipants(event);
             const expected = await makeHTMLResponse(500, INTERNAL_SERVER_ERROR);
 
-            await expect(result).resolves.toStrictEqual(expected);
+            expect(result).toStrictEqual(expected);
+            expect(logger.error).toHaveBeenCalledTimes(1);
+            expect(logger.error).toHaveBeenNthCalledWith(1, 'The meeting ID is missing from the path somehow', event);
         });
     });
 
@@ -499,37 +568,35 @@ describe('listParticipants', () => {
             });
         });
 
-        it('ended meeting should show users', async () => {
-            expect.assertions(4);
-            const event = { headers: {}, pathParameters: { meeting_id: 123 } };
-            const singleLeftItemDynamo = require('./fixtures/single-person-left-dynamo.json');
+        it('non-existent meeting with accept-encoding should encode', async () => {
+            expect.assertions(1);
+            const event = { headers: { 'accept-encoding': 'br' }, pathParameters: { meeting_id: 123 } };
             jest.spyOn(dynamoDB, 'executeStatement')
                 .mockReturnValueOnce({
                     promise: async () => ({
-                        Items: [singleLeftItemDynamo],
+                        Items: [],
                     }),
                 });
             const result = await handleListParticipants(event);
             expect(result).toStrictEqual({
-                body: expect.stringContaining('Meeting Title'),
+                body: expect.stringMatching(/=$/),
                 statusCode: 200,
-                headers: expect.any(Object),
-                isBase64Encoded: false,
+                headers: expect.objectContaining({
+                    'Content-Encoding': 'br',
+                }),
+                isBase64Encoded: true,
             });
-            expect(result.body).toStrictEqual(expect.stringContaining('Total participants: 1'));
-            expect(result.body).toStrictEqual(expect.stringContaining('Ended:'));
-            expect(result.body).toStrictEqual(expect.stringMatching(/Online.*None.*Left the meeting.*Joe Blow/));
         });
 
-        it('running meeting should show users', async () => {
-            expect.assertions(5);
+        it('ended meeting should show users', async () => {
+            expect.assertions(4);
             const event = { headers: {}, pathParameters: { meeting_id: 123 } };
             const singleLeftItemDynamo = require('./fixtures/single-person-left-dynamo.json');
-            const singleHereItemDynamo = require('./fixtures/single-person-still-in-dynamo.json');
+            const secondLeftItemDynamo = require('./fixtures/second-person-left-dynamo.json');
             jest.spyOn(dynamoDB, 'executeStatement')
                 .mockReturnValueOnce({
                     promise: async () => ({
-                        Items: [singleLeftItemDynamo, singleHereItemDynamo],
+                        Items: [singleLeftItemDynamo, secondLeftItemDynamo],
                     }),
                 });
             const result = await handleListParticipants(event);
@@ -540,14 +607,38 @@ describe('listParticipants', () => {
                 isBase64Encoded: false,
             });
             expect(result.body).toStrictEqual(expect.stringContaining('Total participants: 2'));
-            expect(result.body).toStrictEqual(expect.stringContaining('Currently: 1 participant'));
-            expect(result.body).toStrictEqual(expect.stringMatching(/Online.*?Jane Doe/));
+            expect(result.body).toStrictEqual(expect.stringContaining('Ended:'));
+            expect(result.body).toStrictEqual(expect.stringMatching(/Online.*None.*Left the meeting.*Jane Shmoe.*Joe Blow/s));
+        });
+
+        it('running meeting should show users', async () => {
+            expect.assertions(5);
+            const event = { headers: {}, pathParameters: { meeting_id: 123 } };
+            const singleLeftItemDynamo = require('./fixtures/single-person-left-dynamo.json');
+            const singleHereItemDynamo = require('./fixtures/single-person-still-in-dynamo.json');
+            const secondHereItemDynamo = require('./fixtures/second-person-still-in-dynamo.json');
+            jest.spyOn(dynamoDB, 'executeStatement')
+                .mockReturnValueOnce({
+                    promise: async () => ({
+                        Items: [singleLeftItemDynamo, singleHereItemDynamo, secondHereItemDynamo],
+                    }),
+                });
+            const result = await handleListParticipants(event);
+            expect(result).toStrictEqual({
+                body: expect.stringContaining('Meeting Title'),
+                statusCode: 200,
+                headers: expect.any(Object),
+                isBase64Encoded: false,
+            });
+            expect(result.body).toStrictEqual(expect.stringContaining('Total participants: 3'));
+            expect(result.body).toStrictEqual(expect.stringContaining('Currently: 2 participant'));
+            expect(result.body).toStrictEqual(expect.stringMatching(/Online.*Anne Blow.*Jane Doe/s));
             expect(result.body).toStrictEqual(expect.stringMatching(/Left the meeting.*?Joe Blow/));
         });
     });
 
-    it('meeting should with leaver no joins should work', async () => {
-        expect.assertions(4);
+    it('meeting should with leaver no joins should work and have version number', async () => {
+        expect.assertions(5);
         const event = { headers: {}, pathParameters: { meeting_id: 123 } };
         const singleLeftNoJoinItemDynamo = require('./fixtures/single-person-left-no-join-dynamo.json');
         jest.spyOn(dynamoDB, 'executeStatement')
@@ -564,7 +655,9 @@ describe('listParticipants', () => {
             isBase64Encoded: false,
         });
         expect(result.body).toStrictEqual(expect.stringContaining('Total participants: 1'));
-        expect(result.body).toStrictEqual(expect.stringContaining('Ended:'));
+        const endTimeRegex = new RegExp(`Ended:.*?${DateTime.fromISO(singleLeftNoJoinItemDynamo.LeaveTimes.SS[0]).setZone(TIMEZONE).toLocaleString(DATETIME_CLEAR)}`, 's');
+        expect(result.body).toStrictEqual(expect.stringMatching(endTimeRegex));
         expect(result.body).toStrictEqual(expect.stringMatching(/Left the meeting.*?Joe Blow/));
+        expect(result.body).toStrictEqual(expect.stringMatching(/Version: 1\.0\.0/));
     });
 });
