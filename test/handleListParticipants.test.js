@@ -1,7 +1,6 @@
 'use strict';
 
 const { DateTime, Duration } = require('luxon');
-const { inspect } = require('node:util');
 
 // Fish out private helper methods
 const hLP = require('../handlers/handleListParticipants');
@@ -589,7 +588,7 @@ describe('listParticipants', () => {
         });
 
         it('ended meeting should show users', async () => {
-            expect.assertions(4);
+            expect.assertions(6);
             const event = { headers: {}, pathParameters: { meeting_id: 123 } };
             const singleLeftItemDynamo = require('./fixtures/single-person-left-dynamo.json');
             const secondLeftItemDynamo = require('./fixtures/second-person-left-dynamo.json');
@@ -609,6 +608,10 @@ describe('listParticipants', () => {
             expect(result.body).toStrictEqual(expect.stringContaining('Total participants: 2'));
             expect(result.body).toStrictEqual(expect.stringContaining('Ended:'));
             expect(result.body).toStrictEqual(expect.stringMatching(/Online.*None.*Left the meeting.*Jane Shmoe.*Joe Blow/s));
+            const leaveTimeRegex = new RegExp(`Left:.*?${DateTime.fromISO(singleLeftItemDynamo.LeaveTimes.SS[0]).setZone(TIMEZONE).toLocaleString(DATETIME_CLEAR)}`, 's');
+            expect(result.body).toStrictEqual(expect.stringMatching(leaveTimeRegex));
+            const endTimeRegex = new RegExp(`Total participants:.*?Ended:.{0,100}?${DateTime.fromISO(secondLeftItemDynamo.LeaveTimes.SS[0]).setZone(TIMEZONE).toLocaleString(DATETIME_CLEAR)}`, 's');
+            expect(result.body).toStrictEqual(expect.stringMatching(endTimeRegex));
         });
 
         it('running meeting should show users', async () => {
