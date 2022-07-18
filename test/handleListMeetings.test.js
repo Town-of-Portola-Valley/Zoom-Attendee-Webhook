@@ -1,6 +1,8 @@
 'use strict';
 
+const { ConnectContactLens } = require('aws-sdk');
 const { DateTime, Duration } = require('luxon');
+const _ = require('lodash');
 
 // Fish out private helper methods
 const hLM = require('../handlers/handleListMeetings');
@@ -113,6 +115,29 @@ describe('listMeetings', () => {
             });
             expect(results[321].MeetingDuration.valueOf()).toBeGreaterThan(0);
         });
+
+        it('three items same meeting differing LastUpdatedAt', async () => {
+            expect.assertions(2);
+            const oneEndedMeeting = require('./fixtures/one-ended-meeting.json');
+            const secondEndedMeeting = _.cloneDeep(oneEndedMeeting);
+            const thirdEndedMeeting = _.cloneDeep(oneEndedMeeting);
+            oneEndedMeeting[0].LastUpdatedAt.S = '2022-01-01T00:00:00Z';
+            secondEndedMeeting[0].LastUpdatedAt.S = '2022-01-03T00:00:00Z';
+            thirdEndedMeeting[0].LastUpdatedAt.S = '2022-01-02T00:00:00Z';
+            const params = [...oneEndedMeeting, ...secondEndedMeeting, ...thirdEndedMeeting];
+            const results = preProcessResults(params);
+            expect(results).toStrictEqual({
+                [123]: {
+                    MeetingTitle: 'Meeting Title',
+                    MeetingID: 123,
+                    MeetingStartTime: expect.any(DateTime),
+                    MeetingDuration: expect.any(Duration),
+                    ParticipationCount: 0,
+                    LastUpdatedAt: expect.any(DateTime),
+                },
+            });
+            expect(results[123].LastUpdatedAt).toStrictEqual(DateTime.fromISO('2022-01-03T00:00:00Z'));
+        });
     });
 
     describe('basics', () => {
@@ -149,6 +174,26 @@ describe('listMeetings', () => {
             const expected = await makeHTMLResponse(500, INTERNAL_SERVER_ERROR);
 
             await expect(result).resolves.toStrictEqual(expected);
+        });
+
+        it('should encode when asked to encode', async () => {
+            expect.assertions(1);
+            const event = { headers: { 'accept-encoding': 'br' } };
+            jest.spyOn(dynamoDB, 'executeStatement')
+                .mockReturnValueOnce({
+                    promise: async () => ({
+                        Items: [],
+                    }),
+                });
+            const result = await handleListMeetings(event);
+            expect(result).toStrictEqual({
+                body: expect.stringMatching(/=$/),
+                statusCode: 200,
+                headers: expect.objectContaining({
+                    'Content-Encoding': 'br',
+                }),
+                isBase64Encoded: true,
+            });
         });
     });
 
@@ -226,6 +271,37 @@ describe('listMeetings', () => {
                 headers: expect.any(Object),
                 isBase64Encoded: false,
             });
+        });
+
+        it('two active and two ended should generate lists in order', async () => {
+            expect.assertions(3);
+            const event = { headers: {} };
+            const oneEndedMeeting = require('./fixtures/one-ended-meeting.json');
+            const oneRunningMeeting = require('./fixtures/one-running-meeting.json');
+            const secondEndedMeeting = _.cloneDeep(oneEndedMeeting);
+            secondEndedMeeting[0].MeetingStartTime.S = DateTime.fromISO(secondEndedMeeting[0].MeetingStartTime.S).plus({ hours: 1 }).toISO();
+            secondEndedMeeting[0].MeetingTitle.S = 'Later Ended';
+            secondEndedMeeting[0].MeetingID.N = '333';
+            const secondRunningMeeting = _.cloneDeep(oneRunningMeeting);
+            secondRunningMeeting[0].MeetingStartTime.S = DateTime.fromISO(secondEndedMeeting[0].MeetingStartTime.S).plus({ hours: 1 }).toISO();
+            secondRunningMeeting[0].MeetingTitle.S = 'Later Running';
+            secondRunningMeeting[0].MeetingID.N = '111';
+            jest.spyOn(dynamoDB, 'executeStatement')
+                .mockReturnValueOnce({
+                    promise: async () => ({
+                        Items: [...oneEndedMeeting, ...oneRunningMeeting, ...secondEndedMeeting, ...secondRunningMeeting],
+                    })
+                });
+            const result = await handleListMeetings(event);
+            expect(result).toStrictEqual({
+                body: expect.stringMatching(/Active Meetings.*Other Meeting Title.*Later Running.*Ended Meetings.*Later Ended.*Meeting Title/s),
+                statusCode: 200,
+                headers: expect.any(Object),
+                isBase64Encoded: false,
+            });
+            // Make sure active meetings are only active and ended meetings only ended
+            expect(result.body).not.toStrictEqual(expect.stringMatching(/Ended Meetings.*Later Running/s));
+            expect(result.body).not.toStrictEqual(expect.stringMatching(/Later Ending.*Ended Meetings/s));
         });
     });
 });

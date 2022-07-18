@@ -54,7 +54,7 @@ const preProcessResults = (items) => {
     return _(items)
         .map(AWS.DynamoDB.Converter.unmarshall)
         .reduce((sum, i) => {
-            const previous_last_updated = sum[i.MeetingID] && sum[i.MeetingID].LastUpdatedAt || DateTime.now().minus({ years: 1 });
+            const previous_last_updated = sum[i.MeetingID] && sum[i.MeetingID].LastUpdatedAt || DateTime.fromISO(i.LastUpdatedAt);
             const updated = {
                 ...sum[i.MeetingID],
                 MeetingID: i.MeetingID,
@@ -64,7 +64,6 @@ const preProcessResults = (items) => {
                 LastUpdatedAt: DateTime.max(previous_last_updated, DateTime.fromISO(i.LastUpdatedAt)),
             };
             updated.ParticipationCount = (updated.ParticipationCount || 0) + i.ParticipationCount;
-            sum[i.MeetingID] = updated;
             return {
                 ...sum,
                 [`${i.MeetingID}`]: updated,
