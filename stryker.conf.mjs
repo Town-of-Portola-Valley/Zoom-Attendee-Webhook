@@ -6,7 +6,7 @@ const config = {
   testRunner: 'jest',
   coverageAnalysis: 'perTest',
   mutate: ['handlers/*.js'],
-  thresholds: { high: 80, low: 50, 'break': null },
+  thresholds: { high: 100, low: 75, 'break': null },
   cleanTempDir: true,
 };
 export default config;

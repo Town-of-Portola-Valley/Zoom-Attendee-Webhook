@@ -2,11 +2,14 @@
 
 process.env.ZOOM_AUTHORIZATION_CODE = 'BOGUS_TOKEN';
 
+const { logger } = require('@hughescr/logger');
+
 const { dynamoDB, makeHTMLResponse, INTERNAL_SERVER_ERROR, AUTHORIZATION_CHECK } = require('../handlers/helpers');
+const hZW = require('../handlers/handleZoomWebhook');
 const { _makeJoinOrLeaveObject: makeJoinOrLeaveObject,
     _updateJoinOrLeaveIfExists: updateJoinOrLeaveIfExists,
     _insertJoinOrLeaveIfNotExists: insertJoinOrLeaveIfNotExists,
-     handleZoomWebhook } = require('../handlers/handleZoomWebhook');
+     handleZoomWebhook } = hZW;
 
 describe('webhook', () => {
     beforeEach(() => {
@@ -722,11 +725,12 @@ describe('webhook', () => {
         });
 
         it('duplicate event should do nothing', async () => {
-            expect.assertions(2);
+            expect.assertions(4);
 
             jest.spyOn(dynamoDB, 'executeStatement')
                 .mockReturnValueOnce({ promise: async () => Promise.reject('Already exists') }) // Update fails cos event_timestamp
                 .mockReturnValueOnce({ promise: async () => Promise.reject('Insert fails') }); // Insert fails also cos unique key
+            jest.spyOn(logger, 'info');
 
             const event = require('./fixtures/participant-left.json');
             event.body = JSON.parse(event.body);
@@ -741,6 +745,33 @@ describe('webhook', () => {
                 statusCode: 204,
             }));
             expect(dynamoDB.executeStatement).toHaveBeenCalledTimes(2);
+            expect(logger.info).toHaveBeenNthCalledWith(2, 'Update failed', { err: 'Already exists' });
+            expect(logger.info).toHaveBeenNthCalledWith(3, 'Duplicate event; ignoring', { err: 'Insert fails' });
+        });
+    });
+
+    describe('miscellaneous', () => {
+        it('ensure event timestamp is positive', async () => {
+            expect.assertions(2);
+
+            jest.spyOn(dynamoDB, 'executeStatement')
+                .mockReturnValueOnce({ promise: async () => Promise.reject('Already exists') }) // Update fails cos event_timestamp
+                .mockReturnValueOnce({ promise: async () => Promise.reject('Insert fails') }); // Insert fails also cos unique key
+            jest.spyOn(logger, 'info');
+            jest.spyOn(hZW, '_makeJoinOrLeaveObject');
+
+            const event = require('./fixtures/participant-left.json');
+            event.body = JSON.parse(event.body);
+            event.body.event_ts = Date.now();
+            event.body = JSON.stringify(event.body);
+            await handleZoomWebhook(event);
+
+            expect(logger.info).toHaveBeenNthCalledWith(1, expect.objectContaining({
+                LEFT: expect.objectContaining({
+                    EventTimestamp: expect.any(Number),
+                }),
+            }));
+            expect(logger.info.mock.calls[0][0].LEFT.EventTimestamp).toBeGreaterThan(0);
         });
     });
 });
