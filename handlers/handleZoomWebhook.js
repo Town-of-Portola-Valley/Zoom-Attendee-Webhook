@@ -54,6 +54,7 @@ const makeJoinOrLeaveObject = async (joined, payload, event_ts) => {
 
     return joinedOrLeft;
 };
+module.exports._makeJoinOrLeaveObject = makeJoinOrLeaveObject;
 
 const updateJoinOrLeaveIfExists = async (joined, joinOrLeave) => {
     // Stryker disable StringLiteral: This query is correct but won't be tested due to mocking
@@ -90,6 +91,7 @@ const updateJoinOrLeaveIfExists = async (joined, joinOrLeave) => {
         Parameters: params,
     }).promise();
 };
+module.exports._updateJoinOrLeaveIfExists = updateJoinOrLeaveIfExists;
 
 const insertJoinOrLeaveIfNotExists = async (joined, joinOrLeave) => {
     // Stryker disable StringLiteral: This query is correct but won't be tested due to mocking
@@ -131,6 +133,7 @@ const insertJoinOrLeaveIfNotExists = async (joined, joinOrLeave) => {
         Parameters: params,
     }).promise();
 };
+module.exports._insertJoinOrLeaveIfNotExists = insertJoinOrLeaveIfNotExists;
 
 module.exports.handleZoomWebhook = async (event) => {
     if(!event) {
@@ -193,7 +196,7 @@ module.exports.handleZoomWebhook = async (event) => {
     logger.info({ [`${joined ? 'JOINED' : 'LEFT' }`]: joinedOrLeft });
 
     await updateJoinOrLeaveIfExists(joined, joinedOrLeft)
-    .catch(err => {
+    .catch(async (err) => {
         // The update failed, which means no record was found - either the participant hasn't been in the meeting yet
         // OR
         // This event has already been processed, but took longer than 3000ms and timed out on the client side, so
@@ -202,7 +205,7 @@ module.exports.handleZoomWebhook = async (event) => {
         // If the user/meeting DID NOT exist, then the insert will succeed.
         logger.info('Update failed', { err: err });
 
-        return insertJoinOrLeaveIfNotExists(joined, joinedOrLeft);
+        return await insertJoinOrLeaveIfNotExists(joined, joinedOrLeft);
     })
     .catch(err => {
         // We should only arrive here if this is a duplicate event

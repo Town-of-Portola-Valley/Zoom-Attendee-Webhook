@@ -1,0 +1,42 @@
+[
+    {
+        "MeetingID": {
+            "N": "321"
+        },
+        "MeetingTitle": {
+            "S": "Other Meeting Title"
+        },
+        "MeetingStartTime": {
+            "S": "2022-01-02T00:00:00Z"
+        },
+        "MeetingDuration": {
+            "N": "60"
+        },
+        "ParticipationCount": {
+            "N": "1"
+        },
+        "LastUpdatedAt": {
+            "S": "2022-01-02T00:00:00Z"
+        }
+    },
+    {
+        "MeetingID": {
+            "N": "321"
+        },
+        "MeetingTitle": {
+            "S": "Other Meeting Title"
+        },
+        "MeetingStartTime": {
+            "S": "2022-01-02T00:00:00Z"
+        },
+        "MeetingDuration": {
+            "N": "60"
+        },
+        "ParticipationCount": {
+            "N": "0"
+        },
+        "LastUpdatedAt": {
+            "S": "2022-01-02T00:00:00Z"
+        }
+    }
+]
