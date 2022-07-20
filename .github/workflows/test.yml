@@ -16,7 +16,10 @@ jobs:
       run: yarn lint
     - name: Run tests
       run: yarn test
+      env:
+        TZ: America/Los_Angeles
     - name: Run mutation testing
       run: yarn mutate
       env:
         STRYKER_DASHBOARD_API_KEY: ${{ secrets.STRYKER_DASHBOARD_API_KEY }}
+        TZ: America/Los_Angeles
