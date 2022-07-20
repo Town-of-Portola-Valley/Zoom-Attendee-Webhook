@@ -1,6 +1,5 @@
 'use strict';
 
-const { ConnectContactLens } = require('aws-sdk');
 const { DateTime, Duration } = require('luxon');
 const _ = require('lodash');
 

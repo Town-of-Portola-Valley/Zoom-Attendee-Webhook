@@ -7,7 +7,6 @@ const { _makeJoinOrLeaveObject: makeJoinOrLeaveObject,
     _updateJoinOrLeaveIfExists: updateJoinOrLeaveIfExists,
     _insertJoinOrLeaveIfNotExists: insertJoinOrLeaveIfNotExists,
      handleZoomWebhook } = require('../handlers/handleZoomWebhook');
-const { DateTime } = require('luxon');
 
 describe('webhook', () => {
     beforeEach(() => {
