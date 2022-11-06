@@ -30,7 +30,7 @@ const listParticipantsTemplate = pug.compileFile('views/list-participants.pug');
 
 // Sort the `participant.JoinTimes` and `participant.LeaveTimes` chronologically into a single array of objects with
 // `[{time:..., state:...}]` where state is incremented if the time at that position is a Join and decremented for a Leave
-const sortJoinLeaveTimes = async (participant, meetingStartTime) => {
+const sortJoinLeaveTimes = (participant, meetingStartTime) => {
     const joinMerge = _.map(participant.JoinTimes, t => ({ time: t, join: true }));
     const leaveMerge = _.map(participant.LeaveTimes, t => ({ time: t, join: false }));
     const mergedSort = _.sortBy([...joinMerge, ...leaveMerge], 'time'); // In a tie, join before leave thanks to stable sort
@@ -47,7 +47,7 @@ const sortJoinLeaveTimes = async (participant, meetingStartTime) => {
 module.exports._sortJoinLeaveTimes = sortJoinLeaveTimes;
 
 // How wide (as a percentage) should the active part of the bar be, reserving the remainder for the "tail"
-const activeBarWidth = async (meetingStartTime, scheduledDuration, meetingEndTime) => {
+const activeBarWidth = (meetingStartTime, scheduledDuration, meetingEndTime) => {
     if(meetingEndTime) {
         return 99;
     }
@@ -60,8 +60,8 @@ const activeBarWidth = async (meetingStartTime, scheduledDuration, meetingEndTim
 };
 module.exports._activeBarWidth = activeBarWidth;
 
-const durationToPercentage = async (duration, meetingStartTime, scheduledDuration, meetingEndTime) => {
-    const activeWidth = await activeBarWidth(meetingStartTime, scheduledDuration, meetingEndTime);
+const durationToPercentage = (duration, meetingStartTime, scheduledDuration, meetingEndTime) => {
+    const activeWidth = activeBarWidth(meetingStartTime, scheduledDuration, meetingEndTime);
     if(meetingEndTime) {
         return activeWidth * (duration / meetingEndTime.diff(meetingStartTime));
     }
@@ -79,7 +79,7 @@ module.exports._durationToPercentage = durationToPercentage;
 // eg. [{percent: 0, present: true}, {percent: 40, present: false}]
 // which shows someone who joined at meeting start and left 40% through
 const participantProgressData = async (participant, meetingStartTime, scheduledDuration, meetingEndTime) => {
-    const sortedTimes = await sortJoinLeaveTimes(participant, meetingStartTime);
+    const sortedTimes = sortJoinLeaveTimes(participant, meetingStartTime);
     const now = DateTime.now();
     return Promise.all(_.map(sortedTimes, async (t, i) => {
         let endTime;
@@ -91,7 +91,7 @@ const participantProgressData = async (participant, meetingStartTime, scheduledD
             endTime = now;
         }
         const result = {
-            percent: await durationToPercentage(endTime.diff(t.time), meetingStartTime, scheduledDuration, meetingEndTime),
+            percent: durationToPercentage(endTime.diff(t.time), meetingStartTime, scheduledDuration, meetingEndTime),
             present: t.state > 0,
         };
         if(result.present) { // Add a tooltip
