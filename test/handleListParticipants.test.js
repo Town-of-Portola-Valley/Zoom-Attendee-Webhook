@@ -20,33 +20,33 @@ describe('listParticipants', () => {
     });
 
     describe('sortJoinLeaveTimes', () => {
-        it('single join works', async () => {
+        it('single join works', () => {
             expect.assertions(1);
 
             const oneHourAgo = DateTime.now().minus({ hours: 1 });
-            const result = await sortJoinLeaveTimes({
+            const result = sortJoinLeaveTimes({
                 JoinTimes: [oneHourAgo],
             }, oneHourAgo);
             // eslint-disable-next-line jest/prefer-strict-equal -- Compare dates converted to strings
             expect(result).toEqual([{ time: oneHourAgo, state: 0 }, { time: oneHourAgo, state: 1 }]);
         });
 
-        it('single leave works', async () => {
+        it('single leave works', () => {
             expect.assertions(1);
 
             const oneHourAgo = DateTime.now().minus({ hours: 1 });
-            const result = await sortJoinLeaveTimes({
+            const result = sortJoinLeaveTimes({
                 LeaveTimes: [oneHourAgo],
             }, oneHourAgo);
             // eslint-disable-next-line jest/prefer-strict-equal -- Compare dates converted to strings
             expect(result).toEqual([{ time: oneHourAgo, state: 0 }, { time: oneHourAgo, state: 0 }]);
         });
 
-        it('simultaneous join leave works', async () => {
+        it('simultaneous join leave works', () => {
             expect.assertions(1);
 
             const oneHourAgo = DateTime.now().minus({ hours: 1 });
-            const result = await sortJoinLeaveTimes({
+            const result = sortJoinLeaveTimes({
                 JoinTimes: [oneHourAgo],
                 LeaveTimes: [oneHourAgo],
             }, oneHourAgo);
@@ -54,7 +54,7 @@ describe('listParticipants', () => {
             expect(result).toEqual([{ time: oneHourAgo, state: 0 }, { time: oneHourAgo, state: 1 }, { time: oneHourAgo, state: 0 }]);
         });
 
-        it('join after leave works', async () => {
+        it('join after leave works', () => {
             expect.assertions(1);
 
             const oneHourAgo = DateTime.now().minus({ hours: 1 });
@@ -62,7 +62,7 @@ describe('listParticipants', () => {
             const threeHoursAgo = DateTime.now().minus({ hours: 3 });
             const fourHoursAgo = DateTime.now().minus({ hours: 4 });
 
-            const result = await sortJoinLeaveTimes({
+            const result = sortJoinLeaveTimes({
                 JoinTimes: [fourHoursAgo, twoHoursAgo],
                 LeaveTimes: [threeHoursAgo, oneHourAgo],
             }, fourHoursAgo);
@@ -76,48 +76,48 @@ describe('listParticipants', () => {
     });
 
     describe('activeBarWidth', () => {
-        it('meeting ended', async () => {
+        it('meeting ended', () => {
             expect.assertions(1);
 
             const now = DateTime.now();
             const twoHoursAgo = now.minus({ hours: 2 });
             const oneHour = Duration.fromObject({ hours: 1 });
-            const result = await activeBarWidth(twoHoursAgo,
+            const result = activeBarWidth(twoHoursAgo,
                                                 oneHour,
                                                 now);
             expect(result).toBe(99);
         });
 
-        it('95% duration exceeded', async () => {
+        it('95% duration exceeded', () => {
             expect.assertions(1);
 
             const now = DateTime.now();
             const twoHoursAgo = now.minus({ hours: 2 });
             const oneHour = Duration.fromObject({ hours: 1 });
-            const result = await activeBarWidth(twoHoursAgo,
+            const result = activeBarWidth(twoHoursAgo,
                                                 oneHour,
                                                 undefined);
             expect(result).toBeCloseTo(95);
         });
 
-        it('95% duration not reached', async () => {
+        it('95% duration not reached', () => {
             expect.assertions(1);
 
             const twoHoursAgo = DateTime.now().minus({ hours: 2 });
             const threeHours = Duration.fromObject({ hours: 3 });
-            const result = await activeBarWidth(twoHoursAgo,
+            const result = activeBarWidth(twoHoursAgo,
                                                 threeHours,
                                                 undefined);
             expect(result).toBeCloseTo(100);
         });
 
-        it('95% duration on the nose', async () => {
+        it('95% duration on the nose', () => {
             expect.assertions(1);
 
             const now = DateTime.now();
             const longAgo = now.minus({ hours: 95 });
             const longTime = Duration.fromObject({ hours: 100 });
-            const result = await activeBarWidth(longAgo,
+            const result = activeBarWidth(longAgo,
                                                 longTime,
                                                 undefined);
             expect(result).toBeCloseTo(95);
@@ -125,69 +125,69 @@ describe('listParticipants', () => {
     });
 
     describe('durationToPercentage', () => {
-        it('half hour in hour long ended meeting', async () => {
+        it('half hour in hour long ended meeting', () => {
             expect.assertions(1);
 
             const now = DateTime.now();
             const halfHour = Duration.fromObject({ minutes: 30 });
             const oneHourAgo = now.minus({ hours: 1 });
             const longTime = Duration.fromObject({ hours: 30 });
-            const result = await durationToPercentage(halfHour,
+            const result = durationToPercentage(halfHour,
                                                   oneHourAgo,
                                                   longTime,
                                                   now);
             expect(result).toBeCloseTo(1 / 2 * 99);
         });
 
-        it('95% duration not reached in regulation', async () => {
+        it('95% duration not reached in regulation', () => {
             expect.assertions(1);
 
             const now = DateTime.now();
             const oneHourAgo = now.minus({ hours: 1 });
             const oneHour = Duration.fromObject({ hours: 1 });
             const twoHours = Duration.fromObject({ hours: 2 });
-            const result = await durationToPercentage(oneHour,
+            const result = durationToPercentage(oneHour,
                                                   oneHourAgo,
                                                   twoHours,
                                                   undefined);
             expect(result).toBeCloseTo(1 / 2 * 100);
         });
 
-        it('95% duration exceeded in regulation', async () => {
+        it('95% duration exceeded in regulation', () => {
             expect.assertions(1);
 
             const now = DateTime.now();
             const oneHourAgo = now.minus({ hours: 1 });
             const oneHour = Duration.fromObject({ hours: 1 });
-            const result = await durationToPercentage(oneHour,
+            const result = durationToPercentage(oneHour,
                                                   oneHourAgo,
                                                   oneHour,
                                                   undefined);
             expect(result).toBeCloseTo(95);
         });
 
-        it('95% duration on the nose in regulation', async () => {
+        it('95% duration on the nose in regulation', () => {
             expect.assertions(1);
 
             const now = DateTime.now();
             const ninetyFiveHoursAgo = now.minus({ hours: 95 });
             const ninetyFiveHours = Duration.fromObject({ hours: 95 });
             const oneHundredHours = Duration.fromObject({ hours: 100 });
-            const result = await durationToPercentage(ninetyFiveHours, // actual duration
+            const result = durationToPercentage(ninetyFiveHours, // actual duration
                                                   ninetyFiveHoursAgo,  // Meeting start time
                                                   oneHundredHours,     // Scheduled duration
                                                   undefined);          // Meeting end time
             expect(result).toBeCloseTo(95);
         });
 
-        it('live in overtime', async () => {
+        it('live in overtime', () => {
             expect.assertions(1);
 
             const now = DateTime.now();
             const oneHourAgo = now.minus({ hours: 1 });
             const oneHour = Duration.fromObject({ hours: 1 });
             const halfHour = Duration.fromObject({ minutes: 30 });
-            const result = await durationToPercentage(oneHour,
+            const result = durationToPercentage(oneHour,
                                                   oneHourAgo,
                                                   halfHour,
                                                   undefined);
