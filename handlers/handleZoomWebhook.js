@@ -22,7 +22,7 @@ const { DateTime } = require('luxon');
 // - webinat.participant_left
 //
 // Returns:
-//  - 500 with HTML error doc if something weird happend on the AWS side
+//  - 500 with HTML error doc if something weird happened on the AWS side
 //  - 401 if called without correct authorization header
 //  - 400 if called with correct authorization header but no request body
 //  - 422 if called with a request body but that body is missing either `payload` or `event` inside its JSON
