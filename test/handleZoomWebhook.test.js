@@ -345,7 +345,7 @@ describe('webhook', () => {
             const event = { headers: { authorization: AUTHORIZATION_CHECK }, body: '{' };
             const result = handleZoomWebhook(event);
 
-            await expect(result).rejects.toThrow('Unexpected end of JSON input');
+            await expect(result).rejects.toThrow('Expected property name or \'}\' in JSON at position 1');
         });
 
         it('should fail if body has no event', async () => {
