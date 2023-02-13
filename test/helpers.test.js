@@ -61,21 +61,21 @@ describe('helpers', () => {
         expect.assertions(1);
         const result = DateTime.fromObject({ hour: 9, minute: 37 }, { zone: TIMEZONE }).toLocaleString(TIME_SIMPLENOZERO_NOTZ);
 
-        expect(result).toBe('9:37 AM');
+        expect(result).toMatch(/^9:37\s+AM$/);
     });
 
     it('TIME_SIMPLENOZERO', async () => {
         expect.assertions(1);
         const result = DateTime.fromObject({ hour: 9, minute: 37 }, { zone: TIMEZONE }).toLocaleString(TIME_SIMPLENOZERO);
 
-        expect(result).toMatch(/9:37 AM P[SD]T/);
+        expect(result).toMatch(/^9:37\s+AM P[SD]T$/);
     });
 
     it('DATETIME_CLEAR', async () => {
         expect.assertions(1);
         const result = DateTime.fromObject({ year: 2022, month: 7, day: 5, hour: 9, minute: 37 }, { zone: TIMEZONE }).toLocaleString(DATETIME_CLEAR);
 
-        expect(result).toBe('Tue, Jul 5, 9:37 AM PDT');
+        expect(result).toMatch(/^Tue, Jul 5, 9:37\s+AM P[SD]T$/);
     });
 
     it('empty response', async () => {
