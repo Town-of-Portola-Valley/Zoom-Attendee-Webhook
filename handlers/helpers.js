@@ -125,6 +125,11 @@ module.exports.makeHTMLResponse = async (statusCode, body, acceptEncoding) => {
 module.exports.makeXMLResponse = async (statusCode, body, acceptEncoding) => {
     const result = await module.exports.makeHTMLResponse(statusCode, body, acceptEncoding);
     result.headers['Content-Type'] = 'application/xml';
+    delete result['Content-Security-Policy'];
+    delete result['X-Frame-Options'];
+    delete result['X-Content-Type-Options'];
+    delete result['Referrer-Policy'];
+    delete result['X-XSS-Protection'];
     return result;
 };
 
