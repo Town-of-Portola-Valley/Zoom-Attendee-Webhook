@@ -1,0 +1,19 @@
+mixin sitemapURL(baseURL, id, lastmod, changefreq)
+    url
+        loc #{`${baseURL}meeting/${id}`}
+        lastmod #{lastmod.toISO()}
+        changfreq #{changefreq}
+
+doctype xml
+urlset(xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml")
+    //- Base URL is last updated when the last meeting on it changed; it can change roughly hourly
+    url
+        loc #{baseURL}
+        lastmod #{lastUpdated.toISO()}
+        changefreq hourly
+
+    //- Iterate through all the meetings; the ones which have not ended update always; the ones which have ended update never
+    each meeting in meetings.ended
+        +sitemapURL(baseURL, meeting.MeetingID, meeting.LastUpdatedAt, 'never')
+    each meeting in meetings.ongoing
+        +sitemapURL(baseURL, meeting.MeetingID, meeting.LastUpdatedAt, 'always')
