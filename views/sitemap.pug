@@ -2,7 +2,7 @@ mixin sitemapURL(baseURL, id, lastmod, changefreq)
     url
         loc #{`${baseURL}meeting/${id}`}
         lastmod #{lastmod.toISO()}
-        changfreq #{changefreq}
+        changefreq #{changefreq}
 
 doctype xml
 urlset(xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml")
