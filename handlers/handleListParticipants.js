@@ -182,7 +182,7 @@ module.exports.handleListParticipants = async (event) => {
         return makeHTMLResponse(500, INTERNAL_SERVER_ERROR);
     }
 
-    const acceptEncoding = event.headers && event.headers[ACCEPT_ENCODING];
+    const acceptEncoding = event.headers[ACCEPT_ENCODING];
     const meetingID = event.pathParameters && event.pathParameters.meeting_id;
 
     if(!meetingID) {

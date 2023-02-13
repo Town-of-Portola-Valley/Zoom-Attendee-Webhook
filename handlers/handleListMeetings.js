@@ -89,7 +89,7 @@ module.exports.handleListMeetings = async (event) => {
         return makeHTMLResponse(500, INTERNAL_SERVER_ERROR);
     }
 
-    const acceptEncoding = event.headers && event.headers[ACCEPT_ENCODING];
+    const acceptEncoding = event.headers[ACCEPT_ENCODING];
 
     const numDays = event.queryStringParameters && event.queryStringParameters.numDays && parseInt(event.queryStringParameters.numDays) || 7;
 
