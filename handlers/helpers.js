@@ -130,6 +130,7 @@ module.exports.makeXMLResponse = async (statusCode, body, acceptEncoding) => {
     delete result.headers['X-Content-Type-Options'];
     delete result.headers['Referrer-Policy'];
     delete result.headers['X-XSS-Protection'];
+    delete result.headers['X-Git-Version'];
     return result;
 };
 
