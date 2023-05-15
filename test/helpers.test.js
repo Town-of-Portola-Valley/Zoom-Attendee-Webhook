@@ -4,7 +4,8 @@ process.env.TIMEZONE = 'America/Los_Angeles';
 const _ = require('lodash');
 const { DateTime } = require('luxon');
 const path = require('node:path');
-const { makeEmptyResponse, makeHTMLResponse, DATETIME_CLEAR, TIME_SIMPLENOZERO, TIME_SIMPLENOZERO_NOTZ, TIMEZONE } = require('../handlers/helpers');
+const { makeEmptyResponse, makeHTMLResponse, makeXMLResponse, DATETIME_CLEAR, TIME_SIMPLENOZERO, TIME_SIMPLENOZERO_NOTZ, TIMEZONE } = require('../handlers/helpers');
+const exp = require('node:constants');
 
 const CONTENT_ENCODING = 'Content-Encoding';
 
@@ -177,6 +178,22 @@ describe('helpers', () => {
             expect(result).toHaveProperty('statusCode', 12345);
             expect(result).toHaveProperty('body', 'TEST');
             expect(result).toHaveProperty('isBase64Encoded', false);
+        });
+    });
+
+    describe('xml response',  () => {
+        it('check headers', async () => {
+            expect.assertions(8);
+            const result = await makeXMLResponse(12345, 'TEST', 'rando');
+
+            expect(result).toHaveProperty('headers');
+            expect(result.headers).toHaveProperty('Content-Type', 'application/xml');
+            expect(result.headers).not.toHaveProperty('Content-Security-Policy');
+            expect(result.headers).not.toHaveProperty('X-Frame-Options');
+            expect(result.headers).not.toHaveProperty('X-Content-Type-Options');
+            expect(result.headers).not.toHaveProperty('Referrer-Policy');
+            expect(result.headers).not.toHaveProperty('X-XSS-Protection');
+            expect(result.headers).not.toHaveProperty('X-Git-Version');
         });
     });
 });
