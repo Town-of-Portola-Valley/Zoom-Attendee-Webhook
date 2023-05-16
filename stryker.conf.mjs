@@ -6,7 +6,6 @@ const config = {
   testRunner: 'jest',
   coverageAnalysis: 'perTest',
   mutate: ['handlers/*.js'],
-  ignorePatterns: ['handlers/handleSitemap.js'], // TODO: implement tests for this
   thresholds: { high: 100, low: 75, 'break': null },
   cleanTempDir: true,
 };
