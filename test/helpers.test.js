@@ -4,7 +4,8 @@ process.env.TIMEZONE = 'America/Los_Angeles';
 const _ = require('lodash');
 const { DateTime } = require('luxon');
 const path = require('node:path');
-const { makeEmptyResponse, makeHTMLResponse, DATETIME_CLEAR, TIME_SIMPLENOZERO, TIME_SIMPLENOZERO_NOTZ, TIMEZONE } = require('../handlers/helpers');
+const { makeEmptyResponse, makeHTMLResponse, makeXMLResponse, DATETIME_CLEAR, TIME_SIMPLENOZERO, TIME_SIMPLENOZERO_NOTZ, TIMEZONE } = require('../handlers/helpers');
+const exp = require('node:constants');
 
 const CONTENT_ENCODING = 'Content-Encoding';
 
@@ -61,21 +62,21 @@ describe('helpers', () => {
         expect.assertions(1);
         const result = DateTime.fromObject({ hour: 9, minute: 37 }, { zone: TIMEZONE }).toLocaleString(TIME_SIMPLENOZERO_NOTZ);
 
-        expect(result).toBe('9:37 AM');
+        expect(result).toMatch(/^9:37\s+AM$/);
     });
 
     it('TIME_SIMPLENOZERO', async () => {
         expect.assertions(1);
         const result = DateTime.fromObject({ hour: 9, minute: 37 }, { zone: TIMEZONE }).toLocaleString(TIME_SIMPLENOZERO);
 
-        expect(result).toMatch(/9:37 AM P[SD]T/);
+        expect(result).toMatch(/^9:37\s+AM P[SD]T$/);
     });
 
     it('DATETIME_CLEAR', async () => {
         expect.assertions(1);
         const result = DateTime.fromObject({ year: 2022, month: 7, day: 5, hour: 9, minute: 37 }, { zone: TIMEZONE }).toLocaleString(DATETIME_CLEAR);
 
-        expect(result).toBe('Tue, Jul 5, 9:37 AM PDT');
+        expect(result).toMatch(/^Tue, Jul 5, 9:37\s+AM P[SD]T$/);
     });
 
     it('empty response', async () => {
@@ -177,6 +178,22 @@ describe('helpers', () => {
             expect(result).toHaveProperty('statusCode', 12345);
             expect(result).toHaveProperty('body', 'TEST');
             expect(result).toHaveProperty('isBase64Encoded', false);
+        });
+    });
+
+    describe('xml response',  () => {
+        it('check headers', async () => {
+            expect.assertions(8);
+            const result = await makeXMLResponse(12345, 'TEST', 'rando');
+
+            expect(result).toHaveProperty('headers');
+            expect(result.headers).toHaveProperty('Content-Type', 'application/xml');
+            expect(result.headers).not.toHaveProperty('Content-Security-Policy');
+            expect(result.headers).not.toHaveProperty('X-Frame-Options');
+            expect(result.headers).not.toHaveProperty('X-Content-Type-Options');
+            expect(result.headers).not.toHaveProperty('Referrer-Policy');
+            expect(result.headers).not.toHaveProperty('X-XSS-Protection');
+            expect(result.headers).not.toHaveProperty('X-Git-Version');
         });
     });
 });

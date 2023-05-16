@@ -122,6 +122,18 @@ module.exports.makeHTMLResponse = async (statusCode, body, acceptEncoding) => {
     };
 };
 
+module.exports.makeXMLResponse = async (statusCode, body, acceptEncoding) => {
+    const result = await module.exports.makeHTMLResponse(statusCode, body, acceptEncoding);
+    result.headers['Content-Type'] = 'application/xml';
+    delete result.headers['Content-Security-Policy'];
+    delete result.headers['X-Frame-Options'];
+    delete result.headers['X-Content-Type-Options'];
+    delete result.headers['Referrer-Policy'];
+    delete result.headers['X-XSS-Protection'];
+    delete result.headers['X-Git-Version'];
+    return result;
+};
+
 module.exports.makeEmptyResponse = async (statusCode) => {
     return {
         statusCode: statusCode,

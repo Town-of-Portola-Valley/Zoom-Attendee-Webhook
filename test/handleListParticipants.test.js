@@ -214,7 +214,7 @@ describe('listParticipants', () => {
                 expect.objectContaining({
                     percent: expect.closeTo(95),
                     present: true,
-                    tooltip: expect.stringMatching(/Entered: \d?\d:\d\d [AP]M P[SD]T/),
+                    tooltip: expect.stringMatching(/Entered: \d?\d:\d\d\s+[AP]M P[SD]T/),
                 }),
             ]));
         });
@@ -238,7 +238,7 @@ describe('listParticipants', () => {
                 expect.objectContaining({
                     present: true,
                     percent: expect.closeTo(1 / 2 * 95),
-                    tooltip: expect.stringMatching(/Entered: \d?\d:\d\d [AP]M P[SD]T/),
+                    tooltip: expect.stringMatching(/Entered: \d?\d:\d\d\s+[AP]M P[SD]T/),
                 }),
             ]));
         });
@@ -265,7 +265,7 @@ describe('listParticipants', () => {
                 {
                     present: true,
                     percent: expect.closeTo(1 / 2 * 99),
-                    tooltip: expect.stringMatching(/\d?\d:\d\d [AP]M - \d?\d:\d\d [AP]M P[SD]T/),
+                    tooltip: expect.stringMatching(/\d?\d:\d\d\s+[AP]M - \d?\d:\d\d\s+[AP]M P[SD]T/),
                 },
                 {
                     present: false,
@@ -296,7 +296,7 @@ describe('listParticipants', () => {
                 expect.objectContaining({
                     present: true,
                     percent: expect.closeTo(1 / 3 * 95),
-                    tooltip: expect.stringMatching(/\d?\d:\d\d [AP]M - \d?\d:\d\d [AP]M P[SD]T/),
+                    tooltip: expect.stringMatching(/\d?\d:\d\d\s+[AP]M - \d?\d:\d\d\s+[AP]M P[SD]T/),
                 }),
                 expect.objectContaining({
                     present: false,
@@ -305,7 +305,7 @@ describe('listParticipants', () => {
                 expect.objectContaining({
                     present: true,
                     percent: expect.closeTo(1 / 3 * 95),
-                    tooltip: expect.stringMatching(/Entered: \d?\d:\d\d [AP]M P[SD]T/),
+                    tooltip: expect.stringMatching(/Entered: \d?\d:\d\d\s+[AP]M P[SD]T/),
                 }),
             ]));
         });
