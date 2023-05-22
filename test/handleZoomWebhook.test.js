@@ -1,10 +1,11 @@
 'use strict';
 
-process.env.ZOOM_AUTHORIZATION_CODE = 'BOGUS_TOKEN';
+process.env.ZOOM_WEBHOOK_SECRET_TOKEN = 'BOGUS_TOKEN';
 
 const { logger } = require('@hughescr/logger');
+const crypto = require('crypto');
 
-const { dynamoDB, makeHTMLResponse, INTERNAL_SERVER_ERROR, AUTHORIZATION_CHECK } = require('../handlers/helpers');
+const { dynamoDB, makeHTMLResponse, INTERNAL_SERVER_ERROR, ZOOM_WEBHOOK_SECRET_TOKEN } = require('../handlers/helpers');
 const hZW = require('../handlers/handleZoomWebhook');
 const { _makeJoinOrLeaveObject: makeJoinOrLeaveObject,
     _updateJoinOrLeaveIfExists: updateJoinOrLeaveIfExists,
@@ -327,7 +328,11 @@ describe('webhook', () => {
         it('should fail if good auth code but no body', async () => {
             expect.assertions(2);
 
-            const event = { headers: { authorization: AUTHORIZATION_CHECK } };
+            const message = 'v0:12345:undefined';
+            const hashForVerify = crypto.createHmac('sha256', ZOOM_WEBHOOK_SECRET_TOKEN).update(message).digest('hex');
+            const event = {
+                headers: { 'x-zm-request-timestamp': '12345', 'x-zm-signature': `v0:${hashForVerify}` },
+            };
             const result = await handleZoomWebhook(event);
 
             expect(result).toStrictEqual(expect.objectContaining({
@@ -339,19 +344,16 @@ describe('webhook', () => {
             expect(result.statusCode).toBe(400);
         });
 
-        it('should fail if good auth code but body is bad JSON', async () => {
-            expect.assertions(1);
-
-            const event = { headers: { authorization: AUTHORIZATION_CHECK }, body: '{' };
-            const result = handleZoomWebhook(event);
-
-            await expect(result).rejects.toThrow();
-        });
-
         it('should fail if body has no event', async () => {
             expect.assertions(2);
 
-            const event = { headers: { authorization: AUTHORIZATION_CHECK }, body: '{ "payload": 123 }' };
+            const body = JSON.stringify({ payload: 123 });
+            const message = `v0:12345:${body}`;
+            const hashForVerify = crypto.createHmac('sha256', ZOOM_WEBHOOK_SECRET_TOKEN).update(message).digest('hex');
+            const event = {
+                headers: { 'x-zm-request-timestamp': '12345', 'x-zm-signature': `v0:${hashForVerify}` },
+                body,
+            };
             const result = await handleZoomWebhook(event);
 
             expect(result).toStrictEqual({
@@ -368,7 +370,13 @@ describe('webhook', () => {
         it('should fail if body has no payload', async () => {
             expect.assertions(2);
 
-            const event = { headers: { authorization: AUTHORIZATION_CHECK }, body: '{ "event": 123 }' };
+            const body = JSON.stringify({ event: 123 });
+            const message = `v0:12345:${body}`;
+            const hashForVerify = crypto.createHmac('sha256', ZOOM_WEBHOOK_SECRET_TOKEN).update(message).digest('hex');
+            const event = {
+                headers: { 'x-zm-request-timestamp': '12345', 'x-zm-signature': `v0:${hashForVerify}` },
+                body,
+            };
             const result = await handleZoomWebhook(event);
 
             expect(result).toStrictEqual({
@@ -385,10 +393,16 @@ describe('webhook', () => {
         it('should fail if event is wrong', async () => {
             expect.assertions(2);
 
-            const event = { headers: { authorization: AUTHORIZATION_CHECK }, body: JSON.stringify({
+            const body = JSON.stringify({
                 event: 'webinar.random_event',
                 payload: {},
-            }) };
+            });
+            const message = `v0:12345:${body}`;
+            const hashForVerify = crypto.createHmac('sha256', ZOOM_WEBHOOK_SECRET_TOKEN).update(message).digest('hex');
+            const event = {
+                headers: { 'x-zm-request-timestamp': '12345', 'x-zm-signature': `v0:${hashForVerify}` },
+                body,
+            };
             const result = await handleZoomWebhook(event);
 
             expect(result).toStrictEqual({
@@ -415,6 +429,9 @@ describe('webhook', () => {
             event.body = JSON.parse(event.body);
             event.body.event_ts = Date.now();
             event.body = JSON.stringify(event.body);
+            const message = `v0:12345:${event.body}`;
+            event.headers['x-zm-request-timestamp'] = '12345';
+            event.headers['x-zm-signature'] = `v0:${crypto.createHmac('sha256', ZOOM_WEBHOOK_SECRET_TOKEN).update(message).digest('hex')}`;
             const result = await handleZoomWebhook(event);
 
             expect(result).toStrictEqual(expect.objectContaining({
@@ -455,6 +472,9 @@ describe('webhook', () => {
             event.body = JSON.parse(event.body);
             event.body.event_ts = Date.now();
             event.body = JSON.stringify(event.body);
+            const message = `v0:12345:${event.body}`;
+            event.headers['x-zm-request-timestamp'] = '12345';
+            event.headers['x-zm-signature'] = `v0:${crypto.createHmac('sha256', ZOOM_WEBHOOK_SECRET_TOKEN).update(message).digest('hex')}`;
             const result = await handleZoomWebhook(event);
 
             expect(result).toStrictEqual(expect.objectContaining({
@@ -489,6 +509,9 @@ describe('webhook', () => {
             event.body = JSON.parse(event.body);
             event.body.event_ts = Date.now();
             event.body = JSON.stringify(event.body);
+            const message = `v0:12345:${event.body}`;
+            event.headers['x-zm-request-timestamp'] = '12345';
+            event.headers['x-zm-signature'] = `v0:${crypto.createHmac('sha256', ZOOM_WEBHOOK_SECRET_TOKEN).update(message).digest('hex')}`;
             const result = await handleZoomWebhook(event);
 
             expect(result).toStrictEqual(expect.objectContaining({
@@ -529,6 +552,9 @@ describe('webhook', () => {
             event.body = JSON.parse(event.body);
             event.body.event_ts = Date.now();
             event.body = JSON.stringify(event.body);
+            const message = `v0:12345:${event.body}`;
+            event.headers['x-zm-request-timestamp'] = '12345';
+            event.headers['x-zm-signature'] = `v0:${crypto.createHmac('sha256', ZOOM_WEBHOOK_SECRET_TOKEN).update(message).digest('hex')}`;
             const result = await handleZoomWebhook(event);
 
             expect(result).toStrictEqual(expect.objectContaining({
@@ -563,6 +589,9 @@ describe('webhook', () => {
             event.body = JSON.parse(event.body);
             event.body.event_ts = Date.now();
             event.body = JSON.stringify(event.body);
+            const message = `v0:12345:${event.body}`;
+            event.headers['x-zm-request-timestamp'] = '12345';
+            event.headers['x-zm-signature'] = `v0:${crypto.createHmac('sha256', ZOOM_WEBHOOK_SECRET_TOKEN).update(message).digest('hex')}`;
             const result = await handleZoomWebhook(event);
 
             expect(result).toStrictEqual(expect.objectContaining({
@@ -587,6 +616,9 @@ describe('webhook', () => {
             event.body = JSON.parse(event.body);
             event.body.event_ts = Date.now();
             event.body = JSON.stringify(event.body);
+            const message = `v0:12345:${event.body}`;
+            event.headers['x-zm-request-timestamp'] = '12345';
+            event.headers['x-zm-signature'] = `v0:${crypto.createHmac('sha256', ZOOM_WEBHOOK_SECRET_TOKEN).update(message).digest('hex')}`;
             const result = await handleZoomWebhook(event);
 
             expect(result).toStrictEqual(expect.objectContaining({
@@ -627,6 +659,9 @@ describe('webhook', () => {
             event.body = JSON.parse(event.body);
             event.body.event_ts = Date.now();
             event.body = JSON.stringify(event.body);
+            const message = `v0:12345:${event.body}`;
+            event.headers['x-zm-request-timestamp'] = '12345';
+            event.headers['x-zm-signature'] = `v0:${crypto.createHmac('sha256', ZOOM_WEBHOOK_SECRET_TOKEN).update(message).digest('hex')}`;
             const result = await handleZoomWebhook(event);
 
             expect(result).toStrictEqual(expect.objectContaining({
@@ -661,6 +696,9 @@ describe('webhook', () => {
             event.body = JSON.parse(event.body);
             event.body.event_ts = Date.now();
             event.body = JSON.stringify(event.body);
+            const message = `v0:12345:${event.body}`;
+            event.headers['x-zm-request-timestamp'] = '12345';
+            event.headers['x-zm-signature'] = `v0:${crypto.createHmac('sha256', ZOOM_WEBHOOK_SECRET_TOKEN).update(message).digest('hex')}`;
             const result = await handleZoomWebhook(event);
 
             expect(result).toStrictEqual(expect.objectContaining({
@@ -701,6 +739,9 @@ describe('webhook', () => {
             event.body = JSON.parse(event.body);
             event.body.event_ts = Date.now();
             event.body = JSON.stringify(event.body);
+            const message = `v0:12345:${event.body}`;
+            event.headers['x-zm-request-timestamp'] = '12345';
+            event.headers['x-zm-signature'] = `v0:${crypto.createHmac('sha256', ZOOM_WEBHOOK_SECRET_TOKEN).update(message).digest('hex')}`;
             const result = await handleZoomWebhook(event);
 
             expect(result).toStrictEqual(expect.objectContaining({
@@ -736,6 +777,9 @@ describe('webhook', () => {
             event.body = JSON.parse(event.body);
             event.body.event_ts = Date.now();
             event.body = JSON.stringify(event.body);
+            const message = `v0:12345:${event.body}`;
+            event.headers['x-zm-request-timestamp'] = '12345';
+            event.headers['x-zm-signature'] = `v0:${crypto.createHmac('sha256', ZOOM_WEBHOOK_SECRET_TOKEN).update(message).digest('hex')}`;
             const result = await handleZoomWebhook(event);
 
             expect(result).toStrictEqual(expect.objectContaining({
@@ -751,6 +795,34 @@ describe('webhook', () => {
     });
 
     describe('miscellaneous', () => {
+        it('ensure that URL validation works', async () => {
+            expect.assertions(2);
+            const body = JSON.stringify({
+                event: 'endpoint.url_validation',
+                payload: {
+                        plainToken: '12345',
+                },
+            });
+            const message = `v0:12345:${body}`;
+            const hashForVerify = crypto.createHmac('sha256', ZOOM_WEBHOOK_SECRET_TOKEN).update(message).digest('hex');
+            const encryptedToken = crypto.createHmac('sha256', ZOOM_WEBHOOK_SECRET_TOKEN).update('12345').digest('hex');
+            const event = {
+                headers: { 'x-zm-request-timestamp': '12345', 'x-zm-signature': `v0:${hashForVerify}` },
+                body,
+            };
+            const result = await handleZoomWebhook(event);
+
+            expect(result).toStrictEqual({
+                statusCode: expect.any(Number),
+                body: expect.stringContaining(encryptedToken),
+                isBase64Encoded: false,
+                headers: expect.objectContaining({
+                    'Content-Type': 'application/json',
+                }),
+            });
+            expect(result.statusCode).toBe(200);
+        });
+
         it('ensure event timestamp is positive', async () => {
             expect.assertions(2);
 
@@ -764,6 +836,9 @@ describe('webhook', () => {
             event.body = JSON.parse(event.body);
             event.body.event_ts = Date.now();
             event.body = JSON.stringify(event.body);
+            const message = `v0:12345:${event.body}`;
+            event.headers['x-zm-request-timestamp'] = '12345';
+            event.headers['x-zm-signature'] = `v0:${crypto.createHmac('sha256', ZOOM_WEBHOOK_SECRET_TOKEN).update(message).digest('hex')}`;
             await handleZoomWebhook(event);
 
             expect(logger.info).toHaveBeenNthCalledWith(1, expect.objectContaining({

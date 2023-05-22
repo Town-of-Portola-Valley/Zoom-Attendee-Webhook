@@ -1,16 +1,18 @@
 'use strict';
 
 const logger = require('@hughescr/logger').logger;
+const crypto = require('crypto');
 
 const {
         makeHTMLResponse,
         makeEmptyResponse,
+        makeJSONResponse,
         dynamoDB,
         NO_EVENT_RECEIVED,
         INTERNAL_SERVER_ERROR,
         KEEP_ALIVE,
         ACCEPT_ENCODING,
-        AUTHORIZATION_CHECK,
+        ZOOM_WEBHOOK_SECRET_TOKEN,
         DB_TABLE,
       } = require('./helpers.js');
 
@@ -154,10 +156,15 @@ module.exports.handleZoomWebhook = async (event) => {
 
     const acceptEncoding = event.headers[ACCEPT_ENCODING];
 
-    if(event.headers.authorization !== AUTHORIZATION_CHECK) {
+    // Verify Zoom authentication
+    // https://developers.zoom.us/docs/api/rest/webhook-reference/#verify-webhook-events
+    const message = `v0:${event.headers['x-zm-request-timestamp']}:${event.body}`;
+    const hashForVerify = crypto.createHmac('sha256', ZOOM_WEBHOOK_SECRET_TOKEN).update(message).digest('hex');
+    const signature = `v0:${hashForVerify}`;
+    if(event.headers['x-zm-signature'] !== signature) {
         logger.error('Failed to authenticate request', event);
 
-        return makeHTMLResponse(401, 'Authorization header failed to match requirements', acceptEncoding);
+        return makeHTMLResponse(401, 'X-ZM-Signature header verification failed', acceptEncoding);
     }
 
     if(!event.body) {
@@ -177,8 +184,18 @@ module.exports.handleZoomWebhook = async (event) => {
     // At this point the body looks good; has an event and a payload
 
     let joined;
+    let hashForValidate;
     switch(body.event) {
-        case 'webinar.participant_joined':
+        // Sent by Zoom to validate the endpoint and ensure signature checking is correct
+        // https://developers.zoom.us/docs/api/rest/webhook-reference/#validate-your-webhook-endpoint
+        case 'endpoint.url_validation':
+            hashForValidate = crypto.createHmac('sha256', ZOOM_WEBHOOK_SECRET_TOKEN).update(body.payload.plainToken).digest('hex');
+            return makeJSONResponse(200, JSON.stringify({
+                plainToken: body.payload.plainToken,
+                encryptedToken: hashForValidate,
+            }), acceptEncoding);
+
+            case 'webinar.participant_joined':
             joined = true;
             break;
 

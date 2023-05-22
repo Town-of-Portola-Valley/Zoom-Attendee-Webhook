@@ -9,7 +9,7 @@ const brotli = promisify(zlib.brotliCompress);
 const gzip = promisify(zlib.gzip);
 const deflate = promisify(zlib.deflate);
 
-const AUTHORIZATION_CHECK = process.env.ZOOM_AUTHORIZATION_CODE;
+const ZOOM_WEBHOOK_SECRET_TOKEN = process.env.ZOOM_WEBHOOK_SECRET_TOKEN;
 const ORGANIZATION_NAME   = process.env.ORGANIZATION_NAME;
 const DB_TABLE            = process.env.DB_TABLE;
 const TIMEZONE            = process.env.TIMEZONE;
@@ -45,7 +45,7 @@ const TIME_SIMPLENOZERO_NOTZ = {
 // Export the constants
 module.exports = {
     ACCEPT_ENCODING,
-    AUTHORIZATION_CHECK,
+    ZOOM_WEBHOOK_SECRET_TOKEN,
     DATETIME_CLEAR,
     TIME_SIMPLENOZERO,
     TIME_SIMPLENOZERO_NOTZ,
@@ -125,6 +125,18 @@ module.exports.makeHTMLResponse = async (statusCode, body, acceptEncoding) => {
 module.exports.makeXMLResponse = async (statusCode, body, acceptEncoding) => {
     const result = await module.exports.makeHTMLResponse(statusCode, body, acceptEncoding);
     result.headers['Content-Type'] = 'application/xml';
+    delete result.headers['Content-Security-Policy'];
+    delete result.headers['X-Frame-Options'];
+    delete result.headers['X-Content-Type-Options'];
+    delete result.headers['Referrer-Policy'];
+    delete result.headers['X-XSS-Protection'];
+    delete result.headers['X-Git-Version'];
+    return result;
+};
+
+module.exports.makeJSONResponse = async (statusCode, body, acceptEncoding) => {
+    const result = await module.exports.makeHTMLResponse(statusCode, body, acceptEncoding);
+    result.headers['Content-Type'] = 'application/json';
     delete result.headers['Content-Security-Policy'];
     delete result.headers['X-Frame-Options'];
     delete result.headers['X-Content-Type-Options'];
