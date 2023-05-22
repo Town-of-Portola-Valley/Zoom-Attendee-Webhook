@@ -57,7 +57,7 @@ module.exports = {
     TIMEZONE,
 };
 
-const DynamoDB = require('aws-sdk/clients/dynamodb');
+const { DynamoDB } = require('@aws-sdk/client-dynamodb');
 // Create and export the dynamoDB service object
 const dynamoDB = new DynamoDB();
 module.exports.dynamoDB = dynamoDB;
