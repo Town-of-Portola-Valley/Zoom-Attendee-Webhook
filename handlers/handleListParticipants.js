@@ -154,8 +154,8 @@ const preProcessResults = (meetingID, items) => {
                 ...i,
                 JoinTimes: _.map(i.JoinTimes && Array.from(i.JoinTimes) || [], DateTime.fromISO),
                 LeaveTimes: _.map(i.LeaveTimes && Array.from(i.LeaveTimes) || [], DateTime.fromISO),
-                JoinTime: i.ParticipationCount ? _(Array.from(i.JoinTimes)).sortBy().map(DateTime.fromISO).last() : DateTime.now(), // Find the latest join time
-                LeaveTime: i.ParticipationCount ? DateTime.now() : _(Array.from(i.LeaveTimes)).sortBy().map(DateTime.fromISO).last(),
+                JoinTime: i.ParticipationCount ? _(i.JoinTimes).thru(Array.from).sortBy().map(DateTime.fromISO).last() : DateTime.now(), // Find the latest join time
+                LeaveTime: i.ParticipationCount ? DateTime.now() : _(i.LeaveTimes).thru(Array.from).sortBy().map(DateTime.fromISO).last(),
                 ParticipantOnline: i.ParticipationCount ? 'online' : 'offline',
             }))
             .map(i => _.omit(i, ['MeetingTitle', 'MeetingID', 'ParticipationCount', 'MeetingStartTime', 'MeetingDuration']))
