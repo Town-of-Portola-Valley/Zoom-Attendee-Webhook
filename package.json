@@ -17,24 +17,24 @@
   "devDependencies": {
     "@hughescr/eslint-config-default": "^2.8.8",
     "@hughescr/serverless-plugin-git-version-json": "^1.1.0",
-    "@stryker-mutator/core": "^6.4.2",
-    "@stryker-mutator/jest-runner": "^6.4.2",
-    "eslint": "^8.41.0",
-    "eslint-plugin-jest": "^27.2.1",
-    "jest": "^29.5.0",
+    "@stryker-mutator/core": "^7.1.1",
+    "@stryker-mutator/jest-runner": "^7.1.1",
+    "eslint": "^8.47.0",
+    "eslint-plugin-jest": "^27.2.3",
+    "jest": "^29.6.2",
     "jest-log-failure-reporter": "^1.0.0",
-    "serverless": "^3.31.0",
-    "serverless-domain-manager": "^7.0.4",
+    "serverless": "^3.34.0",
+    "serverless-domain-manager": "^7.1.2",
     "serverless-plugin-log-retention": "^2.0.0",
     "serverless-plugin-zip-symlinks-compress-harder": "^0.11.1",
     "stryker-cli": "^1.0.2"
   },
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.337.0",
-    "@aws-sdk/util-dynamodb": "^3.337.0",
+    "@aws-sdk/client-dynamodb": "^3.391.0",
+    "@aws-sdk/util-dynamodb": "^3.391.0",
     "@hughescr/logger": "^2.5.2",
     "lodash": "^4.17.21",
-    "luxon": "^3.3.0",
+    "luxon": "^3.4.0",
     "pug": "^3.0.2"
   }
 }
