@@ -32,7 +32,7 @@
   "dependencies": {
     "@aws-sdk/client-dynamodb": "^3.438.0",
     "@aws-sdk/util-dynamodb": "^3.438.0",
-    "@hughescr/logger": "^2.5.2",
+    "@hughescr/logger": "^2.6.0",
     "lodash": "^4.17.21",
     "luxon": "^3.4.3",
     "pug": "^3.0.2"
