@@ -24,7 +24,7 @@ const { DateTime, Duration } = require('luxon');
 DateTime.DATETIME_CLEAR = DATETIME_CLEAR;
 DateTime.TIME_SIMPLENOZERO = TIME_SIMPLENOZERO;
 
-const AWS = require('aws-sdk');
+const { unmarshall } = require('@aws-sdk/util-dynamodb');
 
 const listParticipantsTemplate = pug.compileFile('views/list-participants.pug');
 
@@ -149,13 +149,13 @@ const preProcessResults = (meetingID, items) => {
         MeetingDuration: Duration.fromObject({ minutes: items[0].MeetingDuration.N }),
         ParticipantCount: items.length,
         results: _(items)
-            .map(AWS.DynamoDB.Converter.unmarshall)
+            .map(unmarshall)
             .map(i => ({
                 ...i,
-                JoinTimes: _.map(i.JoinTimes && i.JoinTimes.values || [], DateTime.fromISO),
-                LeaveTimes: _.map(i.LeaveTimes && i.LeaveTimes.values || [], DateTime.fromISO),
-                JoinTime: i.ParticipationCount ? _(i.JoinTimes.values).sortBy().map(DateTime.fromISO).last() : DateTime.now(), // Find the latest join time
-                LeaveTime: i.ParticipationCount ? DateTime.now() : _(i.LeaveTimes.values).sortBy().map(DateTime.fromISO).last(),
+                JoinTimes: _.map(i.JoinTimes && Array.from(i.JoinTimes) || [], DateTime.fromISO),
+                LeaveTimes: _.map(i.LeaveTimes && Array.from(i.LeaveTimes) || [], DateTime.fromISO),
+                JoinTime: i.ParticipationCount ? _(i.JoinTimes).thru(Array.from).sortBy().map(DateTime.fromISO).last() : DateTime.now(), // Find the latest join time
+                LeaveTime: i.ParticipationCount ? DateTime.now() : _(i.LeaveTimes).thru(Array.from).sortBy().map(DateTime.fromISO).last(),
                 ParticipantOnline: i.ParticipationCount ? 'online' : 'offline',
             }))
             .map(i => _.omit(i, ['MeetingTitle', 'MeetingID', 'ParticipationCount', 'MeetingStartTime', 'MeetingDuration']))

@@ -22,7 +22,7 @@ const {
 const { DateTime, Duration } = require('luxon');
 DateTime.DATETIME_CLEAR = DATETIME_CLEAR;
 
-const AWS = require('aws-sdk');
+const { unmarshall } = require('@aws-sdk/util-dynamodb');
 
 const listMeetingsTemplate = pug.compileFile('views/list-meetings.pug');
 
@@ -52,7 +52,7 @@ module.exports._fetchDataFromDynamo = fetchDataFromDynamo;
 
 const preProcessResults = (items) => {
     return _(items)
-        .map(AWS.DynamoDB.Converter.unmarshall)
+        .map(unmarshall)
         .reduce((sum, i) => {
             const previous_last_updated = sum[i.MeetingID] && sum[i.MeetingID].LastUpdatedAt || DateTime.fromISO(i.LastUpdatedAt);
             const updated = {

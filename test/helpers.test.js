@@ -4,8 +4,7 @@ process.env.TIMEZONE = 'America/Los_Angeles';
 const _ = require('lodash');
 const { DateTime } = require('luxon');
 const path = require('node:path');
-const { makeEmptyResponse, makeHTMLResponse, makeXMLResponse, DATETIME_CLEAR, TIME_SIMPLENOZERO, TIME_SIMPLENOZERO_NOTZ, TIMEZONE } = require('../handlers/helpers');
-const exp = require('node:constants');
+const { makeEmptyResponse, makeHTMLResponse, makeXMLResponse, makeJSONResponse, DATETIME_CLEAR, TIME_SIMPLENOZERO, TIME_SIMPLENOZERO_NOTZ, TIMEZONE } = require('../handlers/helpers');
 
 const CONTENT_ENCODING = 'Content-Encoding';
 
@@ -181,13 +180,29 @@ describe('helpers', () => {
         });
     });
 
-    describe('xml response',  () => {
+    describe('xml response', () => {
         it('check headers', async () => {
             expect.assertions(8);
             const result = await makeXMLResponse(12345, 'TEST', 'rando');
 
             expect(result).toHaveProperty('headers');
             expect(result.headers).toHaveProperty('Content-Type', 'application/xml');
+            expect(result.headers).not.toHaveProperty('Content-Security-Policy');
+            expect(result.headers).not.toHaveProperty('X-Frame-Options');
+            expect(result.headers).not.toHaveProperty('X-Content-Type-Options');
+            expect(result.headers).not.toHaveProperty('Referrer-Policy');
+            expect(result.headers).not.toHaveProperty('X-XSS-Protection');
+            expect(result.headers).not.toHaveProperty('X-Git-Version');
+        });
+    });
+
+    describe('json response', () => {
+        it('check headers', async () => {
+            expect.assertions(8);
+            const result = await makeJSONResponse(12345, 'TEST', 'rando');
+
+            expect(result).toHaveProperty('headers');
+            expect(result.headers).toHaveProperty('Content-Type', 'application/json');
             expect(result.headers).not.toHaveProperty('Content-Security-Policy');
             expect(result.headers).not.toHaveProperty('X-Frame-Options');
             expect(result.headers).not.toHaveProperty('X-Content-Type-Options');

@@ -12,7 +12,7 @@ provider:
   name: aws
   # These values are defaults, and can be over-written in each function below
   architecture: arm64
-  runtime: nodejs16.x
+  runtime: nodejs18.x
   memorySize: 1024
   timeout: 10
   region: us-west-2
@@ -24,8 +24,8 @@ provider:
     blockPublicAccess: true
 
   environment:
-    # ZOOM_AUTHORIZATION_CODE used to validate incoming webhook calls from Zoom
-    ZOOM_AUTHORIZATION_CODE: ${param:ZOOM_AUTHORIZATION_CODE}
+    # ZOOM_WEBHOOK_SECRET_TOKEN used to validate incoming webhook calls from Zoom
+    ZOOM_WEBHOOK_SECRET_TOKEN: ${param:ZOOM_WEBHOOK_SECRET_TOKEN}
     # ORGANIZATION_NAME used as part of the page title on generated webpages
     ORGANIZATION_NAME: ${param:ORGANIZATION_NAME}
     # DB_TABLE used by code to store/retrieve data in DynamoDB

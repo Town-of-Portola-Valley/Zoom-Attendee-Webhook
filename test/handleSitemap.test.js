@@ -147,7 +147,7 @@ describe('listMeetings', () => {
 
         it('should encode when asked to encode', async () => {
             expect.assertions(1);
-            const event = { headers: { 'accept-encoding': 'br' } };
+            const event = { headers: { 'accept-encoding': 'br', host: 'somefoo' } };
             jest.spyOn(dynamoDB, 'executeStatement')
                 .mockReturnValueOnce({
                     promise: async () => ({
@@ -156,7 +156,7 @@ describe('listMeetings', () => {
                 });
             const result = await handleSitemap(event);
             expect(result).toStrictEqual({
-                body: expect.stringMatching(/=$/),
+                body: expect.not.stringMatching(/somefoo/),
                 statusCode: 200,
                 headers: expect.objectContaining({
                     'Content-Encoding': 'br',
